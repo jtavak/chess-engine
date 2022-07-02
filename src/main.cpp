@@ -1,11 +1,13 @@
-#include "board.h"
 #include <iostream>
+
+#include "board.h"
 
 using namespace std;
 
 int main(){
     BaseBoard b = BaseBoard();
-    b.print();
+
+    printBitBoard(b.attacksMask(A8));
 
     return 0;
 }

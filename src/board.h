@@ -1,21 +1,23 @@
 #pragma once
 
+#include <map>
 #include "chess.h"
 
 void printBitBoard(BitBoard bb);
 
 class BaseBoard{
-    BitBoard occupiedColor[2];
+    BitBoard occupied_color[2];
     BitBoard occupied;
 
-    BitBoard pawns;
-    BitBoard knights;
-    BitBoard bishops;
-    BitBoard rooks;
-    BitBoard queens;
-    BitBoard kings;
-
+    BitBoard pawns, knights, bishops, rooks, queens, kings;
     BitBoard promoted;
+
+    static bool initialized_attacks;
+    static void generateAttacks();
+
+    static BitBoard BB_KNIGHT_ATTACKS[64], BB_KING_ATTACKS[64], BB_PAWN_ATTACKS[2][64];
+    static BitBoard BB_DIAG_MASKS[64], BB_FILE_MASKS[64], BB_RANK_MASKS[64];
+    static std::map<BitBoard, BitBoard> BB_DIAG_ATTACKS[64], BB_FILE_ATTACKS[64], BB_RANK_ATTACKS[64];
 
     public:
         BaseBoard();
@@ -31,7 +33,9 @@ class BaseBoard{
         Square king(Color color);
 
         BitBoard attacksMask(Square square);
+        BitBoard attackersMask(Color color, Square square);
+
+        bool isAttackedBy(Color color, Square square);
 
         void print();
-
 };

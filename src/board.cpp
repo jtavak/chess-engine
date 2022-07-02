@@ -1,7 +1,9 @@
-#include "board.h"
 #include <iostream>
 #include <algorithm>
 #include <vector>
+#include <map>
+
+#include "board.h"
 
 int lsb(BitBoard bb){
     return __builtin_ffsll(bb)-1;
@@ -28,20 +30,96 @@ int squareDistance(Square s1, Square s2){
     return std::max(std::abs(squareRank(s1) - squareRank(s2)), std::abs(squareFile(s1) - squareFile(s2)));
 }
 
+BitBoard slidingAttacks(Square square, BitBoard occupied, std::vector<int> deltas){
+
+    BitBoard attacks = BB_EMPTY;
+
+    for(int delta : deltas){
+        Square sq = square;
+
+        while(true){
+            sq += delta;
+            if(!(0 <= sq && sq < 64) || squareDistance(sq, sq-delta) > 2){
+                break;
+            }
+
+            attacks |= BB_ONE << sq;
+
+            if(occupied & (BB_ONE << sq)){
+                break;
+            }
+
+        }
+    }
+
+    return attacks;
+}
+
+BitBoard stepAttacks(Square square, std::vector<int> deltas){
+    return slidingAttacks(square, BB_ALL, deltas);
+}
+
+BitBoard edges(Square square){
+    BitBoard rank = BB_RANK_1 << (8*squareRank(square));
+    BitBoard file = BB_FILE_A << squareFile(square);
+
+    return ((BB_RANK_1 | BB_RANK_8) & ~rank) | ((BB_FILE_A | BB_FILE_H) & ~file);
+}
+
+void attackTable(std::vector<int> deltas, BitBoard* mask_table, std::map<BitBoard, BitBoard>* attack_table){
+
+    for(int i = 0; i < 64; i++){
+        std::map<BitBoard, BitBoard> attacks {};
+        BitBoard mask = slidingAttacks(i, 0, deltas) & ~edges(i);
+
+        // Carry rippler subset iteration
+        BitBoard subset = BB_EMPTY;
+        while(true){
+            attacks.insert(std::pair<BitBoard, BitBoard>(subset, slidingAttacks(i, subset, deltas)));
+
+            subset = (subset-mask) & mask;
+            if(!subset){
+                break;
+            }
+        }
+
+        mask_table[i] = mask;
+        attack_table[i] = attacks;
+    }
+}
+
 // Prints BitBoard with white on bottom.
 void printBitBoard(BitBoard bb){
     for(int i = 7; i >= 0; i--){
         for(int j = 0; j < 8; j++){
-            int bbIndex = 8*i+j;
-            std::cout << ((bb & ( BB_ONE << bbIndex )) >> bbIndex) << ' ';
+            int square = 8*i+j;
+            std::cout << ((bb & ( BB_ONE << square )) >> square) << ' ';
         }
         std::cout << std::endl;
     }
 }
 
+bool BaseBoard::initialized_attacks = false;
+
+BitBoard BaseBoard::BB_KING_ATTACKS[64];
+BitBoard BaseBoard::BB_KNIGHT_ATTACKS[64];
+BitBoard BaseBoard::BB_PAWN_ATTACKS[2][64];
+
+BitBoard BaseBoard::BB_DIAG_MASKS[64];
+BitBoard BaseBoard::BB_FILE_MASKS[64];
+BitBoard BaseBoard::BB_RANK_MASKS[64];
+
+std::map<BitBoard, BitBoard> BaseBoard::BB_DIAG_ATTACKS[64];
+std::map<BitBoard, BitBoard> BaseBoard::BB_FILE_ATTACKS[64];
+std::map<BitBoard, BitBoard> BaseBoard::BB_RANK_ATTACKS[64];
 
 BaseBoard::BaseBoard(){
     resetBoard();
+
+    if(!initialized_attacks){
+        generateAttacks();
+        initialized_attacks = true;
+    }
 }
 
 // Set board to standard chess starting position
@@ -55,9 +133,32 @@ void BaseBoard::resetBoard(){
 
     promoted = BB_EMPTY;
 
-    occupiedColor[WHITE] = BB_RANK_1 | BB_RANK_2;
-    occupiedColor[BLACK] = BB_RANK_7 | BB_RANK_8;
+    occupied_color[WHITE] = BB_RANK_1 | BB_RANK_2;
+    occupied_color[BLACK] = BB_RANK_7 | BB_RANK_8;
     occupied = BB_RANK_1 | BB_RANK_2 | BB_RANK_7 | BB_RANK_8;
+}
+
+void BaseBoard::generateAttacks(){
+    // generate step attacks
+    const std::vector<int> KNIGHT_MOVES {17, 15, 10, 6, -17, -15, -10, -6};
+    const std::vector<int> KING_MOVES {9, 8, 7, 1, -9, -8, -7, -1};
+    const std::vector<int> PAWN_MOVES_WHITE {7, 9};
+    const std::vector<int> PAWN_MOVES_BLACK {-7, -9};
+    for(int i = 0; i < 64; i++){
+        BB_KNIGHT_ATTACKS[i] = stepAttacks(i, KNIGHT_MOVES);
+        BB_KING_ATTACKS[i] = stepAttacks(i, KING_MOVES);
+        BB_PAWN_ATTACKS[BLACK][i] = stepAttacks(i, PAWN_MOVES_BLACK);
+        BB_PAWN_ATTACKS[WHITE][i] = stepAttacks(i, PAWN_MOVES_WHITE);
+    }
+
+    //generate slide attacks
+    const std::vector<int> diag_moves {-9, -7, 7, 9};
+    const std::vector<int> file_moves {-8, 8};
+    const std::vector<int> rank_moves {-1, 1};
+
+    attackTable(diag_moves, BB_DIAG_MASKS, BB_DIAG_ATTACKS);
+    attackTable(file_moves, BB_FILE_MASKS, BB_FILE_ATTACKS);
+    attackTable(rank_moves, BB_RANK_MASKS, BB_RANK_ATTACKS);
 }
 
 // Empty board
@@ -71,8 +172,8 @@ void BaseBoard::clearBoard(){
 
     promoted = BB_EMPTY;
 
-    occupiedColor[WHITE] = BB_EMPTY;
-    occupiedColor[BLACK] = BB_EMPTY;
+    occupied_color[WHITE] = BB_EMPTY;
+    occupied_color[BLACK] = BB_EMPTY;
     occupied = BB_EMPTY;
 }
 
@@ -108,7 +209,7 @@ BitBoard BaseBoard::piecesMask(PieceType piecetype, Color color){
             bb = BB_EMPTY;
     }
 
-    return bb & occupiedColor[color];
+    return bb & occupied_color[color];
 }
 
 // Returns pieceType at a square or NO_PIECE
@@ -137,9 +238,9 @@ PieceType BaseBoard::pieceTypeAt(Square square){
 Color BaseBoard::colorAt(Square square){
     BitBoard mask = BB_ONE << square;
 
-    if(occupiedColor[WHITE] & mask){
+    if(occupied_color[WHITE] & mask){
         return WHITE;
-    } else if (occupiedColor[BLACK] & mask){
+    } else if (occupied_color[BLACK] & mask){
         return BLACK;
     }
 
@@ -149,13 +250,56 @@ Color BaseBoard::colorAt(Square square){
 // Returns Square containing the king of one color
 Square BaseBoard::king(Color color){
     
-    return msb(occupiedColor[color] & kings);
+    return msb(occupied_color[color] & kings);
 }
 
 // Returns a BitBoard mask of all possible attacks from a square
 BitBoard BaseBoard::attacksMask(Square square){
     BitBoard bb_square = BB_ONE << square;
-    return BB_EMPTY;
+    
+    if(bb_square & pawns){
+        if(bb_square & occupied_color[WHITE]){
+            return BB_PAWN_ATTACKS[WHITE][square];
+        }
+        return BB_PAWN_ATTACKS[BLACK][square];
+    } else if (bb_square & knights){
+        return BB_KNIGHT_ATTACKS[square];
+    } else if (bb_square & kings){
+        return BB_KING_ATTACKS[square];
+    } else {
+        BitBoard attacks = BB_EMPTY;
+        if((bb_square & bishops) || (bb_square & queens)){
+            attacks = BB_DIAG_ATTACKS[square][BB_DIAG_MASKS[square] & occupied];
+        }
+        if((bb_square & rooks) || (bb_square & queens)){
+            attacks |= (BB_RANK_ATTACKS[square][BB_RANK_MASKS[square] & occupied] | BB_FILE_ATTACKS[square][BB_FILE_MASKS[square] & occupied]);
+        }
+        return attacks;
+    }
+}
+
+BitBoard BaseBoard::attackersMask(Color color, Square square){
+    BitBoard rank_pieces = BB_RANK_MASKS[square] & occupied;
+    BitBoard file_pieces = BB_FILE_MASKS[square] & occupied;
+    BitBoard diag_pieces = BB_DIAG_MASKS[square] & occupied;
+
+    BitBoard queens_and_rooks = queens | rooks;
+    BitBoard queens_and_bishops = queens | bishops;
+
+    Color pawn_color = (color==WHITE) ? BLACK : WHITE;
+
+    BitBoard attackers = (BB_KING_ATTACKS[square] & kings) |
+                         (BB_KNIGHT_ATTACKS[square] & knights) |
+                         (BB_RANK_ATTACKS[square][rank_pieces] & queens_and_rooks) |
+                         (BB_FILE_ATTACKS[square][file_pieces] & queens_and_rooks) |
+                         (BB_DIAG_ATTACKS[square][diag_pieces] & queens_and_bishops) |
+                         (BB_PAWN_ATTACKS[pawn_color][square] & pawns);
+
+    return attackers & occupied_color[color];
+}
+
+bool BaseBoard::isAttackedBy(Color color, Square square){
+    return (bool) attackersMask(color, square);
 }
 
 // Prints the chess board with white on bottom
@@ -164,42 +308,42 @@ void BaseBoard::print(){
     for(int i = 7; i >= 0; i--){
         for(int j = 0; j < 8; j++){
             Color color = colorAt(8*i+j);
-            PieceType pieceType = pieceTypeAt(8*i+j);
-            char pieceChar;
+            PieceType piece_type = pieceTypeAt(8*i+j);
+            char piece_char;
 
-            switch(pieceType){
+            switch(piece_type){
                 case PAWN:
-                    pieceChar='P';
+                    piece_char='P';
                     break;
 
                 case KNIGHT:
-                    pieceChar='N';
+                    piece_char='N';
                     break;
 
                 case BISHOP:
-                    pieceChar='B';
+                    piece_char='B';
                     break;
 
                 case ROOK:
-                    pieceChar='R';
+                    piece_char='R';
                     break;
 
                 case QUEEN:
-                    pieceChar='Q';
+                    piece_char='Q';
                     break;
 
                 case KING:
-                    pieceChar='K';
+                    piece_char='K';
                     break;
 
                 default:
-                    pieceChar='.';
+                    piece_char='.';
             }
 
-            if(color == BLACK && pieceChar != '.'){
-                std::cout << (char)(pieceChar + ('a'- 'A')) << ' ';
+            if(color == BLACK && piece_char != '.'){
+                std::cout << (char)(piece_char + ('a'- 'A')) << ' ';
             } else {
-                std::cout << pieceChar << ' ';
+                std::cout << piece_char << ' ';
             }
         }
         std::cout << std::endl;

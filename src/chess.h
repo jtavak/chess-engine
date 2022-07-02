@@ -70,5 +70,3 @@ const BitBoard BB_LIGHT_SQUARES = 0x55aa55aa55aa55aa;
 const BitBoard BB_DARK_SQUARES = 0xaa55aa55aa55aa55;
 
 const BitBoard BB_BACKRANKS = BB_RANK_1 | BB_RANK_8;
-
-BitBoard slidingAttacks(Square square, BitBoard occupied, std::vector<int> deltas);
