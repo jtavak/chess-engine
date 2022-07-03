@@ -1,41 +1,59 @@
 #pragma once
 
-#include <map>
-#include "chess.h"
+#include <string>
+#include <vector>
 
-void printBitBoard(BitBoard bb);
+#include "move.h"
+#include "baseboard.h"
+#include "constants.h"
 
-class BaseBoard{
-    BitBoard occupied_color[2];
-    BitBoard occupied;
+class Board;
 
+class BoardState{
+    // BaseBoard state
     BitBoard pawns, knights, bishops, rooks, queens, kings;
+
+    BitBoard occupied;
+    BitBoard occupied_color[2];
+
     BitBoard promoted;
 
-    static bool initialized_attacks;
-    static void generateAttacks();
-
-    static BitBoard BB_KNIGHT_ATTACKS[64], BB_KING_ATTACKS[64], BB_PAWN_ATTACKS[2][64];
-    static BitBoard BB_DIAG_MASKS[64], BB_FILE_MASKS[64], BB_RANK_MASKS[64];
-    static std::map<BitBoard, BitBoard> BB_DIAG_ATTACKS[64], BB_FILE_ATTACKS[64], BB_RANK_ATTACKS[64];
+    // Board state
+    Color turn;
+    BitBoard castling_rights;
+    Square ep_square;
+    int fullmove_number, halfmove_clock;
 
     public:
-        BaseBoard();
+        BoardState(Board board);
+        void restore(Board* board);
+
+};
+
+class Board: public BaseBoard{
+    std::vector<Move> move_stack;
+    std::vector<BoardState> state_stack;
+
+    void clearStack();
+
+    bool attackedForKing(BitBoard path, BitBoard occupied);
+
+    public:
+        Color turn;
+        BitBoard castling_rights;
+        Square ep_square;
+        int fullmove_number, halfmove_clock;
+
+        Board(std::string fen);
+        Board();
 
         void resetBoard();
         void clearBoard();
 
-        BitBoard piecesMask(PieceType piecetype, Color color);
+        std::vector<Move> generatePseudoLegalMoves(BitBoard from_mask, BitBoard to_mask);
+        std::vector<Move> generatePseudoLegalMoves();
 
-        PieceType pieceTypeAt(Square square);
-        Color colorAt(Square square);
-
-        Square king(Color color);
-
-        BitBoard attacksMask(Square square);
-        BitBoard attackersMask(Color color, Square square);
-
-        bool isAttackedBy(Color color, Square square);
+        void setBoardFEN(std::string fen);
 
         void print();
 };
