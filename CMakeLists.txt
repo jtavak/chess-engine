@@ -4,4 +4,4 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 project(chess-engine)
 
-add_executable(chess-engine src/main.cpp src/baseboard.cpp src/board.cpp src/move.cpp)
+add_executable(chess-engine src/main.cpp src/baseboard.cpp src/board.cpp src/move.cpp src/engine.cpp)

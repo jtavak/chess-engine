@@ -1,7 +1,6 @@
 #include <string>
 #include <iostream>
 #include <sstream>
-#include <algorithm>
 
 #include "board.h"
 #include "baseboard.h"

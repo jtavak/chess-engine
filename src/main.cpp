@@ -2,6 +2,7 @@
 
 #include "baseboard.h"
 #include "board.h"
+#include "engine.h"
 
 using namespace std;
 
