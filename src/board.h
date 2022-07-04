@@ -34,6 +34,17 @@ class Board: public BaseBoard{
     std::vector<Move> move_stack;
     std::vector<BoardState> state_stack;
 
+    std::vector<Move> generatePseudoLegalMoves(BitBoard from_mask, BitBoard to_mask);
+    std::vector<Move> generateLegalMoves(BitBoard from_mask, BitBoard to_mask);
+
+    Move generatePseudoLegalEP(BitBoard from_mask, BitBoard to_mask);
+
+    std::vector<Move> generateEvasions(Square king_square, BitBoard checkers, BitBoard from_mask, BitBoard to_mask);
+
+    bool EPSkewered(Square king_square, Square capturer_square);
+    BitBoard sliderBlockers(Square king_square);
+    bool isSafe(Square king_square, BitBoard blockers, Move move);
+
     void clearStack();
 
     bool attackedForKing(BitBoard path, BitBoard occupied);
@@ -50,8 +61,19 @@ class Board: public BaseBoard{
         void resetBoard();
         void clearBoard();
 
-        std::vector<Move> generatePseudoLegalMoves(BitBoard from_mask, BitBoard to_mask);
+        std::vector<Move> generateLegalMoves();
         std::vector<Move> generatePseudoLegalMoves();
+
+        Move generatePseudoLegalEP();
+
+        bool isPseudoLegal(Move move);
+        bool isCastling(Move move);
+        bool isEnPassant(Move move);
+
+        BitBoard checkersMask();
+        bool isCheck();
+
+        bool isCheckmate();
 
         void setBoardFEN(std::string fen);
 

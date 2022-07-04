@@ -60,6 +60,8 @@ std::vector<Move> Board::generatePseudoLegalMoves(BitBoard from_mask, BitBoard t
 
     BitBoard our_pieces = occupied_color[turn];
 
+    Color opp_turn = (turn==WHITE) ? BLACK : WHITE;
+
     // generate piece moves
     BitBoard non_pawns = our_pieces & ~pawns & from_mask;
     while(non_pawns){
@@ -120,11 +122,295 @@ std::vector<Move> Board::generatePseudoLegalMoves(BitBoard from_mask, BitBoard t
         candidates &= (candidates - 1);
     }
 
+    // generate pawn captures
+    BitBoard capturers = pawns & occupied_color[turn] & from_mask;
+    if(!capturers){
+        return moves;
+    }
+
+    while(capturers){
+        Square from_square = lsb(capturers);
+        BitBoard targets = BB_PAWN_ATTACKS[turn][from_square] & occupied_color[opp_turn] & to_mask;
+
+        while(targets){
+            Square to_square = lsb(targets);
+            if(squareRank(to_square) == 0 || squareRank(to_square) == 7){
+                moves.push_back(Move(from_square, to_square, QUEEN));
+                moves.push_back(Move(from_square, to_square, ROOK));
+                moves.push_back(Move(from_square, to_square, BISHOP));
+                moves.push_back(Move(from_square, to_square, KNIGHT));
+            } else {
+                moves.push_back(Move(from_square, to_square));
+            }
+
+            targets &= (targets - 1);
+        }
+
+        capturers &= (capturers - 1);
+    }
+
+    // prepare pawn advance generation
+    BitBoard movable_pawns = pawns & occupied_color[turn] & from_mask;
+    BitBoard single_moves, double_moves;
+    if(turn == WHITE){
+        single_moves = (movable_pawns << 8) & ~occupied;
+        double_moves = (single_moves << 8) & ~occupied & (BB_RANK_3 | BB_RANK_4);
+    } else {
+        single_moves = (movable_pawns >> 8) & ~occupied;
+        double_moves = (single_moves >> 8) & ~occupied & (BB_RANK_6 | BB_RANK_5);
+    }
+
+    single_moves &= to_mask;
+    double_moves &= to_mask;
+
+    // generate single pawn moves
+    while(single_moves){
+        Square to_square = lsb(single_moves);
+        int delta = (turn == BLACK) ? 8 : -8;
+
+        Square from_square = to_square + delta;
+
+        if(squareRank(to_square) == 0 || squareRank(to_square) == 7){
+            moves.push_back(Move(from_square, to_square, QUEEN));
+            moves.push_back(Move(from_square, to_square, ROOK));
+            moves.push_back(Move(from_square, to_square, BISHOP));
+            moves.push_back(Move(from_square, to_square, KNIGHT));
+        } else {
+            moves.push_back(Move(from_square, to_square));
+        }
+
+        single_moves &= (single_moves - 1);
+    }
+
+    //generate double pawn moves
+    while(double_moves){
+        Square to_square = lsb(double_moves);
+        int delta = (turn == BLACK) ? 16 : -16;
+
+        Square from_square = to_square + delta;
+
+        moves.push_back(Move(from_square, to_square));
+
+        double_moves &= (double_moves - 1);
+    }
+
+    //generate en passant captures
+    if(ep_square && (BB_SQUARES[ep_square] & to_mask) && !(BB_SQUARES[ep_square] & occupied)){
+        BitBoard ep_rank = (turn == WHITE) ? BB_RANK_5 : BB_RANK_4;
+        BitBoard capturers = pawns & occupied_color[turn] & from_mask &
+                             BB_PAWN_ATTACKS[opp_turn][ep_square] & ep_rank;
+
+        while(capturers){
+            Square from_square = lsb(capturers);
+            moves.push_back(Move(from_square, ep_square));
+
+            capturers &= (capturers - 1);
+        }
+    }
+
     return moves;
 }
 
 std::vector<Move> Board::generatePseudoLegalMoves(){
     return generatePseudoLegalMoves(BB_ALL, BB_ALL);
+}
+
+Move Board::generatePseudoLegalEP(BitBoard from_mask, BitBoard to_mask){
+    Color opp_turn = (turn==WHITE) ? BLACK : WHITE;
+
+    BitBoard ep_rank = (turn == WHITE) ? BB_RANK_5 : BB_RANK_4;
+    BitBoard capturers = pawns & occupied_color[turn] & from_mask &
+                            BB_PAWN_ATTACKS[opp_turn][ep_square] & ep_rank;
+
+    while(capturers){
+        Square from_square = lsb(capturers);
+        return(Move(from_square, ep_square));
+
+        capturers &= (capturers - 1);
+    }
+
+    return NO_MOVE;
+}
+
+Move Board::generatePseudoLegalEP(){
+    return generatePseudoLegalEP(BB_ALL, BB_ALL);
+}
+
+bool Board::isPseudoLegal(Move move){
+    for(auto pseudo_legal_move: generatePseudoLegalMoves()){
+        if(pseudo_legal_move == move){
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Board::isCastling(Move move){
+    if(kings & BB_SQUARES[move.from_square]){
+        int diff = squareFile(move.from_square) - squareFile(move.to_square);
+        return (abs(diff) > 1) || (bool)(rooks & occupied_color[turn] & BB_SQUARES[move.to_square]);
+    }
+    return false;
+}
+
+bool Board::isEnPassant(Move move){
+    return (ep_square == move.to_square) &&
+           (bool)(pawns & BB_SQUARES[move.from_square]) && 
+           (abs(move.to_square - move.from_square) == 7 || abs(move.to_square - move.from_square) == 9) &&
+           !(occupied & BB_SQUARES[move.to_square]);
+}
+
+BitBoard Board::checkersMask(){
+    Square our_king = king(turn);
+    Color opp_turn = (turn==WHITE) ? BLACK : WHITE;
+
+    return attackersMask(opp_turn, our_king);
+}
+
+bool Board::isCheck(){
+    return (bool)checkersMask();
+}
+
+bool Board::EPSkewered(Square king_square, Square capturer_square){
+    Color opp_turn = (turn==WHITE) ? BLACK : WHITE;
+    int delta = (turn == WHITE) ? -8 : 8;
+    Square last_double = ep_square + delta;
+
+    BitBoard occupancy = occupied & ~BB_SQUARES[last_double] & ~BB_SQUARES[capturer_square] | BB_SQUARES[ep_square];
+
+    BitBoard horizontal_attackers = occupied_color[opp_turn] & (rooks | queens);
+    if(BB_RANK_ATTACKS[king_square][BB_RANK_MASKS[king_square] & occupancy] & horizontal_attackers){
+        return true;
+    }
+
+    BitBoard diagonal_attackers = occupied_color[opp_turn] & (bishops | queens);
+    if(BB_DIAG_ATTACKS[king_square][BB_DIAG_MASKS[king_square] & occupancy] & diagonal_attackers){
+        return true;
+    }
+
+    return false;
+}
+
+BitBoard Board::sliderBlockers(Square king_square){
+    Color opp_turn = (turn==WHITE) ? BLACK : WHITE;
+
+    BitBoard rooks_and_queens = rooks | queens;
+    BitBoard bishops_and_queens = bishops | queens;
+
+    BitBoard snipers = (BB_RANK_ATTACKS[king_square][0] & rooks_and_queens) |
+                       (BB_FILE_ATTACKS[king_square][0] & rooks_and_queens) |
+                       (BB_DIAG_ATTACKS[king_square][0] & bishops_and_queens);
+
+    BitBoard blockers = BB_EMPTY;
+
+    BitBoard opp_snipers = snipers & occupied_color[opp_turn];
+
+    while(opp_snipers){
+        Square sniper = lsb(opp_snipers);
+
+        BitBoard b = between(king_square, sniper) & occupied;
+
+        if(b && (BB_SQUARES[lsb(b)] == b)){
+            blockers |= b;
+        }
+
+        opp_snipers &= (opp_snipers - 1);
+    }
+
+    return blockers & occupied_color[turn];
+}
+
+bool Board::isSafe(Square king_square, BitBoard blockers, Move move){
+    Color opp_turn = (turn==WHITE) ? BLACK : WHITE;
+
+    if(move.from_square == king_square){
+        if(isCastling(move)){
+            return true;
+        } else {
+            return !isAttackedBy(opp_turn, move.to_square);
+        }
+    }
+
+    if(isEnPassant(move)){
+        return (pinMask(turn, move.from_square) & BB_SQUARES[move.to_square]) &&
+               !EPSkewered(king_square, move.from_square);
+    }
+
+    return !(blockers & BB_SQUARES[move.from_square]) ||
+           (ray(move.from_square, move.to_square) & BB_SQUARES[king_square]);
+}
+
+std::vector<Move> Board::generateEvasions(Square king_square, BitBoard checkers, BitBoard from_mask, BitBoard to_mask){
+    std::vector<Move> moves;
+
+    BitBoard sliders = checkers & (bishops | rooks | queens);
+
+    BitBoard attacked = BB_EMPTY;
+    while(sliders){
+        Square checker = lsb(sliders);
+
+        attacked |= ray(king_square, checker) & ~BB_SQUARES[checker];
+
+        sliders &= (sliders - 1);
+    }
+
+    if(BB_SQUARES[king_square] & from_mask){
+        BitBoard to_squares = BB_KING_ATTACKS[king_square] & ~occupied_color[turn] & ~attacked & to_mask;
+        while(to_squares){
+            moves.push_back(Move(king_square, lsb(to_squares)));
+            to_squares &= (to_squares - 1);
+        }
+    }
+
+    Square checker = msb(checkers);
+    if(BB_SQUARES[checker] == checkers){
+        BitBoard target = between(king_square, checker) | checkers;
+
+        std::vector<Move> blocks_and_captures = generatePseudoLegalMoves(~kings & from_mask, target & to_mask);
+        moves.insert(moves.end(), blocks_and_captures.begin(), blocks_and_captures.end());
+
+        if(ep_square != NO_SQUARE && !(BB_SQUARES[ep_square] & target)){
+            int delta = (turn == WHITE) ? -8 : 8;
+            Square last_double = ep_square + delta;
+            if(last_double == checker){
+                moves.push_back(generatePseudoLegalEP(from_mask, to_mask));
+            }
+        }
+    }
+
+    return moves;
+}
+
+std::vector<Move> Board::generateLegalMoves(BitBoard from_mask, BitBoard to_mask){
+    std::vector<Move> moves;
+
+    Color opp_turn = (turn==WHITE) ? BLACK : WHITE;
+
+    BitBoard king_mask = kings & occupied_color[turn];
+    Square king_square = lsb(king_mask);
+
+    BitBoard blockers = sliderBlockers(king_square);
+    BitBoard checkers = attackersMask(opp_turn, king_square);
+
+    if(checkers){
+        for(auto move: generateEvasions(king_square, checkers, from_mask, to_mask)){
+            if(isSafe(king_square, blockers, move)){
+                moves.push_back(move);
+            }
+        }
+    } else {
+        for(auto move: generatePseudoLegalMoves(from_mask, to_mask)){
+            if(isSafe(king_square, blockers, move)){
+                moves.push_back(move);
+            }
+        }
+    }
+
+    return moves;
+}
+
+std::vector<Move> Board::generateLegalMoves(){
+    return generateLegalMoves(BB_ALL, BB_ALL);
 }
 
 void Board::setBoardFEN(std::string fen){
