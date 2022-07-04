@@ -43,6 +43,8 @@ class Board: public BaseBoard{
     BitBoard sliderBlockers(Square king_square);
     bool isSafe(Square king_square, BitBoard blockers, Move move);
 
+    bool isHalfmoves(int n);
+
     void clearStack();
 
     bool attackedForKing(BitBoard path, BitBoard occupied);
@@ -80,6 +82,11 @@ class Board: public BaseBoard{
 
         bool isCheckmate();
         bool isStalemate();
+        bool hasInsufficientMaterial(Color color);
+        bool isInsufficientMaterial();
+        bool isFiftyMoves();
+
+        Outcome gameOutcome();
 
         void setBoardFEN(std::string fen);
 

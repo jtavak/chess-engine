@@ -7,6 +7,7 @@
 
 int lsb(BitBoard bb);
 int msb(BitBoard bb);
+int popcount(BitBoard bb);
 
 int squareFile(Square square);
 int squareRank(Square square);

@@ -3,6 +3,7 @@
 #include <sstream>
 
 #include "board.h"
+#include "baseboard.h"
 #include "move.h"
 #include "constants.h"
 
@@ -403,6 +404,52 @@ bool Board::isStalemate(){
         return false;
     }
     return generateLegalMoves().empty();
+}
+
+bool Board::hasInsufficientMaterial(Color color){
+    Color opp_color = (turn==WHITE) ? BLACK : WHITE;
+
+    if(occupied_color[color] & (pawns | rooks | queens)){
+        return false;
+    }
+
+    if(occupied_color[color] & knights){
+        return popcount(occupied_color[color]) <= 2 && !(occupied_color[opp_color] & ~kings & ~queens);
+    }
+
+    if(occupied_color[color] & bishops){
+        bool same_color = !(bishops & BB_DARK_SQUARES) || !(bishops & BB_LIGHT_SQUARES);
+        return same_color && !pawns && !knights;
+    }
+
+    return true;
+}
+
+bool Board::isInsufficientMaterial(){
+    return hasInsufficientMaterial(WHITE) && hasInsufficientMaterial(BLACK);
+}
+
+bool Board::isHalfmoves(int n){
+    return halfmove_clock >= n && !generateLegalMoves().empty();
+}
+
+bool Board::isFiftyMoves(){
+    return isHalfmoves(100);
+}
+
+Outcome Board::gameOutcome(){
+    if(isInsufficientMaterial() || isFiftyMoves()){
+        return DRAW;
+    }
+
+    if(generateLegalMoves().empty()){
+        if(isCheck()){
+            return (turn == WHITE) ? BLACK_WIN : WHITE_WIN;
+        }
+        return DRAW;
+    }
+
+    return NO_OUTCOME;
 }
 
 bool Board::EPSkewered(Square king_square, Square capturer_square){
