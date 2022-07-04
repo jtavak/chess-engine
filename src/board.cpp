@@ -44,6 +44,97 @@ void Board::clearStack(){
     state_stack.clear();
 }
 
+void Board::push(Move move){
+    // add current position to stack
+    state_stack.push_back(BoardState(this));
+    move_stack.push_back(move);
+
+    Square prev_ep_square = ep_square;
+    ep_square = NO_SQUARE;
+
+    halfmove_clock++;
+    if(turn == BLACK){
+        fullmove_number++;
+    }
+
+    // reset halfmove clock if move is pawn advance or capture
+    if(isZeroing(move)){
+        halfmove_clock = 0;
+    }
+
+    BitBoard from_bb = BB_SQUARES[move.from_square];
+    BitBoard to_bb = BB_SQUARES[move.to_square];
+
+    PieceType piece_type = removePieceAt(move.from_square);
+    Square capture_square = move.to_square;
+    PieceType capture_piece_type = pieceTypeAt(capture_square);
+
+    // update castling rights
+    castling_rights &= (~from_bb & ~to_bb);
+    if(piece_type == KING){
+        if(turn == WHITE){
+            castling_rights &= ~BB_RANK_1;
+        } else {
+            castling_rights &= ~BB_RANK_8;
+        }
+    }
+
+    // handle special pawn moves
+    if(piece_type == PAWN){
+        int diff = move.to_square - move.from_square;
+
+        if(diff == 16 && squareRank(move.from_square) == 1){
+            ep_square = move.from_square + 8;
+        } else if (diff == -16 && squareRank(move.from_square) == 6){
+            ep_square = move.from_square - 8;
+        } else if (move.to_square == ep_square && (abs(diff) == 7 || abs(diff) == 9) && capture_piece_type == NO_PIECE){
+            int down = (turn == WHITE) ? -8 : 8;
+            capture_square = ep_square + down;
+            capture_piece_type = removePieceAt(capture_square);
+        }
+    }
+
+    // handle pawn promotions
+    bool promoted = false;
+    if(move.promotion != NO_PIECE){
+        promoted = true;
+        piece_type = move.promotion;
+    }
+
+    // handle castling
+    bool castling = piece_type == KING && (occupied_color[turn] & to_bb);
+    if(castling){
+        bool a_side = squareFile(move.to_square) < squareFile(move.from_square);
+
+        removePieceAt(move.from_square);
+        removePieceAt(move.to_square);
+
+        if(a_side){
+            setPieceAt((turn == WHITE) ? C1 : C8, KING, turn);
+            setPieceAt((turn == WHITE) ? D1 : D8, ROOK, turn);
+        } else {
+            setPieceAt((turn == WHITE) ? G1 : G8, KING, turn);
+            setPieceAt((turn == WHITE) ? F1 : F8, ROOK, turn);
+        }
+    } else {
+        setPieceAt(move.to_square, piece_type, turn);
+    }
+
+    turn = (turn==WHITE) ? BLACK : WHITE;
+}
+
+Move Board::pop(){
+    Move move = move_stack.back();
+    move_stack.pop_back();
+
+    BoardState bs = state_stack.back();
+    state_stack.pop_back();
+
+    bs.restore(this);
+
+    return move;
+}
+
 bool Board::attackedForKing(BitBoard path, BitBoard occupied_squares){
     Color opp_turn = (turn==WHITE) ? BLACK : WHITE;
     while(path){
@@ -260,6 +351,34 @@ bool Board::isEnPassant(Move move){
            !(occupied & BB_SQUARES[move.to_square]);
 }
 
+bool Board::isIntoCheck(Move move){
+    Square king_square = king(turn);
+
+    Color opp_turn = (turn==WHITE) ? BLACK : WHITE;
+
+    BitBoard checkers = attackersMask(opp_turn, king_square);
+    if(checkers){
+        for(auto evasion: generateEvasions(king_square, checkers, BB_SQUARES[move.from_square], BB_SQUARES[move.to_square])){
+            if(evasion == move){
+                return !isSafe(king_square, sliderBlockers(king_square), move);
+            }
+        }
+        return true;
+    }
+    return !isSafe(king_square, sliderBlockers(king_square), move);
+
+}
+
+bool Board::isZeroing(Move move){
+    Color opp_turn = (turn==WHITE) ? BLACK : WHITE;
+    BitBoard touched = BB_SQUARES[move.from_square] ^ BB_SQUARES[move.to_square];
+    return (touched & pawns) || (touched & occupied_color[opp_turn]);
+}
+
+bool Board::isLegal(Move move){
+    return isPseudoLegal(move) && !isIntoCheck(move);
+}
+
 BitBoard Board::checkersMask(){
     Square our_king = king(turn);
     Color opp_turn = (turn==WHITE) ? BLACK : WHITE;
@@ -269,6 +388,21 @@ BitBoard Board::checkersMask(){
 
 bool Board::isCheck(){
     return (bool)checkersMask();
+}
+
+bool Board::isCheckmate(){
+    if(!isCheck()){
+        return false;
+    }
+
+    return generateLegalMoves().empty();
+}
+
+bool Board::isStalemate(){
+    if(isCheck()){
+        return false;
+    }
+    return generateLegalMoves().empty();
 }
 
 bool Board::EPSkewered(Square king_square, Square capturer_square){
@@ -476,25 +610,23 @@ void Board::print(){
     BaseBoard::print();
 }
 
-BoardState::BoardState(Board board){
-    pawns = board.pawns;
-    bishops = board.bishops;
-    knights = board.knights;
-    rooks = board.rooks;
-    queens = board.queens;
-    kings = board.kings;
+BoardState::BoardState(Board* board){
+    pawns = board->pawns;
+    bishops = board->bishops;
+    knights = board->knights;
+    rooks = board->rooks;
+    queens = board->queens;
+    kings = board->kings;
 
-    occupied = board.occupied;
-    occupied_color[WHITE] = board.occupied_color[WHITE];
-    occupied_color[BLACK] = board.occupied_color[BLACK];
+    occupied = board->occupied;
+    occupied_color[WHITE] = board->occupied_color[WHITE];
+    occupied_color[BLACK] = board->occupied_color[BLACK];
 
-    promoted = board.promoted;
-
-    turn = board.turn;
-    castling_rights = board.castling_rights;
-    ep_square = board.ep_square;
-    fullmove_number = board.fullmove_number;
-    halfmove_clock = board.halfmove_clock;
+    turn = board->turn;
+    castling_rights = board->castling_rights;
+    ep_square = board->ep_square;
+    fullmove_number = board->fullmove_number;
+    halfmove_clock = board->halfmove_clock;
 }
 
 void BoardState::restore(Board* board){
@@ -508,8 +640,6 @@ void BoardState::restore(Board* board){
     board->occupied = occupied;
     board->occupied_color[WHITE] = occupied_color[WHITE];
     board->occupied_color[BLACK] = occupied_color[BLACK];
-
-    board->promoted = promoted;
 
     board->turn = turn;
     board->castling_rights = castling_rights;

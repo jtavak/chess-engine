@@ -16,8 +16,6 @@ class BoardState{
     BitBoard occupied;
     BitBoard occupied_color[2];
 
-    BitBoard promoted;
-
     // Board state
     Color turn;
     BitBoard castling_rights;
@@ -25,7 +23,7 @@ class BoardState{
     int fullmove_number, halfmove_clock;
 
     public:
-        BoardState(Board board);
+        BoardState(Board* board);
         void restore(Board* board);
 
 };
@@ -61,6 +59,9 @@ class Board: public BaseBoard{
         void resetBoard();
         void clearBoard();
 
+        void push(Move move);
+        Move pop();
+
         std::vector<Move> generateLegalMoves();
         std::vector<Move> generatePseudoLegalMoves();
 
@@ -69,11 +70,16 @@ class Board: public BaseBoard{
         bool isPseudoLegal(Move move);
         bool isCastling(Move move);
         bool isEnPassant(Move move);
+        bool isIntoCheck(Move move);
+        bool isZeroing(Move move);
+        bool isLegal(Move move);
+
 
         BitBoard checkersMask();
         bool isCheck();
 
         bool isCheckmate();
+        bool isStalemate();
 
         void setBoardFEN(std::string fen);
 

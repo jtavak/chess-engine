@@ -5,7 +5,6 @@
 #include <string>
 
 #include "baseboard.h"
-#include "constants.h"
 
 int lsb(BitBoard bb){
     return __builtin_ffsll(bb)-1;
@@ -200,8 +199,6 @@ void BaseBoard::resetBoard(){
     queens = BB_D1 | BB_D8;
     kings = BB_E1 | BB_E8;
 
-    promoted = BB_EMPTY;
-
     occupied_color[WHITE] = BB_RANK_1 | BB_RANK_2;
     occupied_color[BLACK] = BB_RANK_7 | BB_RANK_8;
     occupied = BB_RANK_1 | BB_RANK_2 | BB_RANK_7 | BB_RANK_8;
@@ -215,8 +212,6 @@ void BaseBoard::clearBoard(){
     rooks = BB_EMPTY;
     queens = BB_EMPTY;
     kings = BB_EMPTY;
-
-    promoted = BB_EMPTY;
 
     occupied_color[WHITE] = BB_EMPTY;
     occupied_color[BLACK] = BB_EMPTY;
@@ -291,7 +286,7 @@ void BaseBoard::setBoardFEN(std::string fen){
     }
 }
 
-void BaseBoard::removePieceAt(Square square){
+PieceType BaseBoard::removePieceAt(Square square){
     PieceType piecetype = pieceTypeAt(square);
     BitBoard mask = BB_SQUARES[square];
 
@@ -321,17 +316,17 @@ void BaseBoard::removePieceAt(Square square){
             break;
 
         default:
-            return;
+            return NO_PIECE;
     }
 
     occupied ^= mask;
     occupied_color[WHITE] &= ~mask;
     occupied_color[BLACK] &= ~mask;
 
-    promoted &= ~mask;
+    return piecetype;
 }
 
-void BaseBoard::setPieceAt(Square square, PieceType piecetype, Color color, bool promoted){
+void BaseBoard::setPieceAt(Square square, PieceType piecetype, Color color){
     removePieceAt(square);
 
     BitBoard mask = BB_SQUARES[square];
@@ -367,14 +362,6 @@ void BaseBoard::setPieceAt(Square square, PieceType piecetype, Color color, bool
 
     occupied ^= mask;
     occupied_color[color] ^= mask;
-
-    if(promoted){
-        promoted ^= mask;
-    }
-}
-
-void BaseBoard::setPieceAt(Square square, PieceType piecetype, Color color){
-    setPieceAt(square, piecetype, color, false);
 }
 
 // Returns BitBoard mask of squares with PieceType and Color

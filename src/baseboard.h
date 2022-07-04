@@ -31,7 +31,6 @@ class BaseBoard{
         BitBoard occupied;
 
         BitBoard pawns, knights, bishops, rooks, queens, kings;
-        BitBoard promoted;
 
         BaseBoard(std::string fen);
         BaseBoard();
@@ -41,9 +40,8 @@ class BaseBoard{
 
         void setBoardFEN(std::string fen);
 
-        void removePieceAt(Square square);
+        PieceType removePieceAt(Square square);
         void setPieceAt(Square square, PieceType piecetype, Color color);
-        void setPieceAt(Square square, PieceType piecetype, Color color, bool promoted);
 
         BitBoard piecesMask(PieceType piecetype, Color color);
 
