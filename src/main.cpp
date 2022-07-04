@@ -6,20 +6,9 @@
 using namespace std;
 
 int main(){
-    Board b = Board();
+    Board b = Board("rnbqkbnr/ppPppppp/8/8/8/8/PP1PPPPP/RNBQKBNR w KQkq - 0 1");
 
-    b.print();
-    cout << endl;
-
-    b.push(Move(E2, E4));
-    b.print();
-    cout << endl;
-
-    b.push(Move(E7, E5));
-    b.print();
-    cout << endl;
-
-    b.pop();
+    b.pushUCI("c7b8n");
     b.print();
     cout << endl;
 

@@ -74,6 +74,7 @@ class Board: public BaseBoard{
         bool isEnPassant(Move move);
         bool isIntoCheck(Move move);
         bool isZeroing(Move move);
+        bool isCapture(Move move);
         bool isLegal(Move move);
 
 
@@ -89,6 +90,8 @@ class Board: public BaseBoard{
         Outcome gameOutcome();
 
         void setBoardFEN(std::string fen);
+
+        void pushUCI(std::string uci);
 
         void print();
 };

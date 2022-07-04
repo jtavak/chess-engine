@@ -1,6 +1,7 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <algorithm>
 
 #include "board.h"
 #include "baseboard.h"
@@ -373,7 +374,15 @@ bool Board::isIntoCheck(Move move){
 bool Board::isZeroing(Move move){
     Color opp_turn = (turn==WHITE) ? BLACK : WHITE;
     BitBoard touched = BB_SQUARES[move.from_square] ^ BB_SQUARES[move.to_square];
+
     return (touched & pawns) || (touched & occupied_color[opp_turn]);
+}
+
+bool Board::isCapture(Move move){
+    Color opp_turn = (turn==WHITE) ? BLACK : WHITE;
+    BitBoard touched = BB_SQUARES[move.from_square] ^ BB_SQUARES[move.to_square];
+
+    return (touched & occupied_color[opp_turn]) || isEnPassant(move);
 }
 
 bool Board::isLegal(Move move){
@@ -652,6 +661,55 @@ void Board::setBoardFEN(std::string fen){
     iss >> s;
     fullmove_number = std::stoi(s);
 }
+
+void Board::pushUCI(std::string uci){
+    if(uci.length() == 4){
+        Square from_square;
+        Square to_square;
+
+        for(int i = 0; i < 64; i++){
+            if(uci.substr(0, 2) == SQUARE_NAMES[i]){
+                from_square = i;
+            }
+
+            if(uci.substr(2, 2) == SQUARE_NAMES[i]){
+                to_square = i;
+            }
+        }
+
+        Move move = Move(from_square, to_square);
+
+        if(isLegal(move)){
+            push(move);
+        }
+    } else if(uci.length() == 5){
+        Square from_square;
+        Square to_square;
+        PieceType promotion;
+
+        for(int i = 0; i < 64; i++){
+            if(uci.substr(0, 2) == SQUARE_NAMES[i]){
+                from_square = i;
+            }
+
+            if(uci.substr(2, 2) == SQUARE_NAMES[i]){
+                to_square = i;
+            }
+        }
+
+        char piece_codes[4] = {'n', 'b', 'r', 'q'};
+        for(int i = 0; i < 6; i++){
+            if(uci.at(4) == piece_codes[i]){
+                promotion = i+2;
+            }
+        }
+
+        Move move = Move(from_square, to_square, promotion);
+        if(isLegal(move)){
+            push(move);
+        }
+    }
+} 
 
 void Board::print(){
     BaseBoard::print();
