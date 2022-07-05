@@ -2,4 +2,4 @@
 
 #include "board.h"
 
-int evaluation(Board b);
+std::pair<int, Move> searchRoot(Board b, int depth);

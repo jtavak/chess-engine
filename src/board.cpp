@@ -662,56 +662,15 @@ void Board::setBoardFEN(std::string fen){
 }
 
 void Board::pushUCI(std::string uci){
-    if(uci.length() == 4){
-        Square from_square;
-        Square to_square;
-
-        for(int i = 0; i < 64; i++){
-            if(uci.substr(0, 2) == SQUARE_NAMES[i]){
-                from_square = i;
-            }
-
-            if(uci.substr(2, 2) == SQUARE_NAMES[i]){
-                to_square = i;
-            }
-        }
-
-        Move move = Move(from_square, to_square);
-
-        if(isLegal(move)){
-            push(move);
-        }
-    } else if(uci.length() == 5){
-        Square from_square;
-        Square to_square;
-        PieceType promotion;
-
-        for(int i = 0; i < 64; i++){
-            if(uci.substr(0, 2) == SQUARE_NAMES[i]){
-                from_square = i;
-            }
-
-            if(uci.substr(2, 2) == SQUARE_NAMES[i]){
-                to_square = i;
-            }
-        }
-
-        char piece_codes[4] = {'n', 'b', 'r', 'q'};
-        for(int i = 0; i < 6; i++){
-            if(uci.at(4) == piece_codes[i]){
-                promotion = i+2;
-            }
-        }
-
-        Move move = Move(from_square, to_square, promotion);
-        if(isLegal(move)){
-            push(move);
-        }
+    Move m = Move(uci);
+    if(isLegal(m)){
+        push(m);
     }
 } 
 
 void Board::print(){
     BaseBoard::print();
+    std::cout << std::endl;
 }
 
 BoardState::BoardState(Board* board){

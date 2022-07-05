@@ -12,10 +12,11 @@ class Move{
 
         Move(Square from, Square to);
         Move(Square from, Square to, PieceType p);
+        Move(std::string uci);
 
         bool operator == (Move move);
 
-        std::string to_uci();
+        std::string toUCI();
 };
 
 const Move NO_MOVE = Move(-1, -1, -1);
