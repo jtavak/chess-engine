@@ -1,6 +1,6 @@
 #include <iostream>
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include <string>
 
 #include "baseboard.h"
@@ -66,10 +66,10 @@ BitBoard edges(Square square){
     return ((BB_RANK_1 | BB_RANK_8) & ~rank) | ((BB_FILE_A | BB_FILE_H) & ~file);
 }
 
-void attackTable(std::vector<int> deltas, BitBoard* mask_table, std::map<BitBoard, BitBoard>* attack_table){
+void attackTable(std::vector<int> deltas, BitBoard* mask_table, std::unordered_map<BitBoard, BitBoard>* attack_table){
 
     for(int i = 0; i < 64; i++){
-        std::map<BitBoard, BitBoard> attacks {};
+        std::unordered_map<BitBoard, BitBoard> attacks {};
         BitBoard mask = slidingAttacks(i, 0, deltas) & ~edges(i);
 
         // Carry rippler subset iteration
@@ -88,7 +88,7 @@ void attackTable(std::vector<int> deltas, BitBoard* mask_table, std::map<BitBoar
     }
 }
 
-void genRays(BitBoard rays[64][64], std::map<BitBoard, BitBoard> BB_DIAG_ATTACKS[64], std::map<BitBoard, BitBoard> BB_FILE_ATTACKS[64], std::map<BitBoard, BitBoard> BB_RANK_ATTACKS[64]){
+void genRays(BitBoard rays[64][64], std::unordered_map<BitBoard, BitBoard> BB_DIAG_ATTACKS[64], std::unordered_map<BitBoard, BitBoard> BB_FILE_ATTACKS[64], std::unordered_map<BitBoard, BitBoard> BB_RANK_ATTACKS[64]){
     for(int i = 0; i < 64; i++){
         for(int j = 0; j < 64; j++){
             BitBoard bb_i = BB_SQUARES[i];
@@ -130,9 +130,9 @@ BitBoard BaseBoard::BB_RANK_MASKS[64];
 
 BitBoard BaseBoard::BB_RAYS[64][64];
 
-std::map<BitBoard, BitBoard> BaseBoard::BB_DIAG_ATTACKS[64];
-std::map<BitBoard, BitBoard> BaseBoard::BB_FILE_ATTACKS[64];
-std::map<BitBoard, BitBoard> BaseBoard::BB_RANK_ATTACKS[64];
+std::unordered_map<BitBoard, BitBoard> BaseBoard::BB_DIAG_ATTACKS[64];
+std::unordered_map<BitBoard, BitBoard> BaseBoard::BB_FILE_ATTACKS[64];
+std::unordered_map<BitBoard, BitBoard> BaseBoard::BB_RANK_ATTACKS[64];
 
 BaseBoard::BaseBoard(){
     resetBoard();
