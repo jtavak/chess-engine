@@ -139,6 +139,10 @@ int evaluation(Board b){
 }
 
 int negamax(Board b, int depth, int alpha, int beta){
+    if(b.isInsufficientMaterial() || b.isFiftyMoves()){
+        return 0;
+    }
+    
     if(depth == 0){
         return evaluation(b);
     }
@@ -146,6 +150,9 @@ int negamax(Board b, int depth, int alpha, int beta){
     std::vector<Move> moves = b.generateLegalMoves();
 
     if(moves.empty()){
+        if(b.isCheck()){
+            return (b.turn == WHITE) ? 30000 : -30000;
+        }
         return 0;
     }
 

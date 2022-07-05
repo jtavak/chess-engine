@@ -6,7 +6,7 @@
 using namespace std;
 
 int main(){
-    Board b = Board("r1bq1rk1/p1p2ppp/5n2/3p4/1b6/2NB4/PPP2PPP/R1BQ1RK1 w - - 2 10");
+    Board b = Board();
 
     while(b.gameOutcome() == NO_OUTCOME){
         b.print();
@@ -18,9 +18,15 @@ int main(){
 
         while(!b.isLegal(m)){
             cout << "Move not legal.\nEnter a move: ";
+            cin >> uci;
+            m = Move(uci);
         }
 
         b.pushUCI(uci);
+
+        if(b.gameOutcome() != NO_OUTCOME){
+            break;
+        }
 
         std::pair<int, Move> best_move = searchRoot(b, 6);
         cout << best_move.second.toUCI() << endl;
