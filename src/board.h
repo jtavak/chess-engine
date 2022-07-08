@@ -94,4 +94,6 @@ class Board: public BaseBoard{
         void pushUCI(std::string uci);
 
         void print();
+
+        bool operator == (Board b);
 };

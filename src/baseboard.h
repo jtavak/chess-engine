@@ -62,4 +62,6 @@ class BaseBoard{
         bool isPinned(Color color, Square square);
 
         void print();
+
+        bool operator == (BaseBoard b);
 };

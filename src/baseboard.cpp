@@ -600,3 +600,13 @@ void BaseBoard::print(){
         std::cout << std::endl;
     }
 }
+
+bool BaseBoard::operator == (BaseBoard b){
+    return b.pawns == pawns &&
+           b.knights == knights &&
+           b.bishops == bishops && 
+           b.rooks == rooks && 
+           b.queens == queens &&
+           b.kings == kings &&
+           b.occupied_color[WHITE] == occupied_color[WHITE];
+}

@@ -2,4 +2,12 @@
 
 #include "board.h"
 
-std::pair<int, Move> searchRoot(Board b, int depth);
+struct ZobristTable{
+    BitBoard pieces[64][6][2];
+    BitBoard castling_rights[4];
+    BitBoard ep_files[8];
+    BitBoard black_to_move;
+};
+
+std::pair<int, Move> searchRoot(Board b, int depth, const ZobristTable table);
+void init_zobrist(ZobristTable* table);

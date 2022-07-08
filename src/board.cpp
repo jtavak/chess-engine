@@ -673,6 +673,19 @@ void Board::print(){
     std::cout << std::endl;
 }
 
+bool Board::operator == (Board b){
+    return b.pawns == pawns &&
+           b.knights == knights &&
+           b.bishops == bishops && 
+           b.rooks == rooks && 
+           b.queens == queens &&
+           b.kings == kings &&
+           b.occupied_color[WHITE] == occupied_color[WHITE] &&
+           b.turn == turn &&
+           b.castling_rights == castling_rights &&
+           b.ep_square == ep_square;
+}
+
 BoardState::BoardState(Board* board){
     pawns = board->pawns;
     bishops = board->bishops;
