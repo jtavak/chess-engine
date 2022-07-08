@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cstdint>
 
 #include "engine.h"
 #include "board.h"
@@ -7,6 +8,10 @@ using namespace std;
 
 int main(){
     Board b = Board();
+
+    ZobristTable t;
+    init_zobrist(&t);
+    const ZobristTable table = t;
 
     while(b.gameOutcome() == NO_OUTCOME){
         b.print();
@@ -28,7 +33,7 @@ int main(){
             break;
         }
 
-        std::pair<int, Move> best_move = searchRoot(b, 6);
+        std::pair<int, Move> best_move = searchRoot(b, 6, table);
         cout << best_move.second.toUCI() << endl;
         b.push(best_move.second);
 

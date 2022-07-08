@@ -3,7 +3,6 @@
 
 #include <cstdint>
 #include <random>
-#include <iostream>
 
 const int8_t PAWN_TABLE[64] = {
     0,  0,  0,  0,  0,  0,  0,  0,
