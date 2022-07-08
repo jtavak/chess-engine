@@ -32,22 +32,22 @@ class Board: public BaseBoard{
     std::vector<Move> move_stack;
     std::vector<BoardState> state_stack;
 
-    std::vector<Move> generatePseudoLegalMoves(BitBoard from_mask, BitBoard to_mask);
-    std::vector<Move> generateLegalMoves(BitBoard from_mask, BitBoard to_mask);
+    const std::vector<Move> generatePseudoLegalMoves(BitBoard from_mask, BitBoard to_mask) const;
+    const std::vector<Move> generateLegalMoves(BitBoard from_mask, BitBoard to_mask) const;
 
-    Move generatePseudoLegalEP(BitBoard from_mask, BitBoard to_mask);
+    Move generatePseudoLegalEP(BitBoard from_mask, BitBoard to_mask) const;
 
-    std::vector<Move> generateEvasions(Square king_square, BitBoard checkers, BitBoard from_mask, BitBoard to_mask);
+    const std::vector<Move> generateEvasions(Square king_square, BitBoard checkers, BitBoard from_mask, BitBoard to_mask) const;
 
-    bool EPSkewered(Square king_square, Square capturer_square);
-    BitBoard sliderBlockers(Square king_square);
-    bool isSafe(Square king_square, BitBoard blockers, Move move);
+    bool EPSkewered(Square king_square, Square capturer_square) const;
+    BitBoard sliderBlockers(Square king_square) const;
+    bool isSafe(Square king_square, BitBoard blockers, Move move) const;
 
-    bool isHalfmoves(int n);
+    bool isHalfmoves(int n) const;
 
     void clearStack();
 
-    bool attackedForKing(BitBoard path, BitBoard occupied);
+    bool attackedForKing(BitBoard path, BitBoard occupied) const;
 
     public:
         Color turn;
@@ -64,36 +64,36 @@ class Board: public BaseBoard{
         void push(Move move);
         Move pop();
 
-        std::vector<Move> generateLegalMoves();
-        std::vector<Move> generatePseudoLegalMoves();
+        const std::vector<Move> generateLegalMoves() const;
+        const std::vector<Move> generatePseudoLegalMoves() const;
 
-        Move generatePseudoLegalEP();
+        Move generatePseudoLegalEP() const;
 
-        bool isPseudoLegal(Move move);
-        bool isCastling(Move move);
-        bool isEnPassant(Move move);
-        bool isIntoCheck(Move move);
-        bool isZeroing(Move move);
-        bool isCapture(Move move);
-        bool isLegal(Move move);
+        bool isPseudoLegal(Move move) const; 
+        bool isCastling(Move move) const;
+        bool isEnPassant(Move move) const;
+        bool isIntoCheck(Move move) const;
+        bool isZeroing(Move move) const;
+        bool isCapture(Move move) const;
+        bool isLegal(Move move) const;
 
 
-        BitBoard checkersMask();
-        bool isCheck();
+        BitBoard checkersMask() const;
+        bool isCheck() const;
 
-        bool isCheckmate();
-        bool isStalemate();
-        bool hasInsufficientMaterial(Color color);
-        bool isInsufficientMaterial();
-        bool isFiftyMoves();
+        bool isCheckmate() const;
+        bool isStalemate() const;
+        bool hasInsufficientMaterial(Color color) const;
+        bool isInsufficientMaterial() const;
+        bool isFiftyMoves() const;
 
-        Outcome gameOutcome();
+        Outcome gameOutcome() const;
 
         void setBoardFEN(std::string fen);
 
         void pushUCI(std::string uci);
 
-        void print();
+        void print() const;
 
         bool operator == (Board b);
 };

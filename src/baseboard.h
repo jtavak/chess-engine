@@ -45,24 +45,24 @@ class BaseBoard{
         PieceType removePieceAt(Square square);
         void setPieceAt(Square square, PieceType piecetype, Color color);
 
-        BitBoard piecesMask(PieceType piecetype, Color color);
+        BitBoard piecesMask(PieceType piecetype, Color color) const;
 
-        PieceType pieceTypeAt(Square square);
-        Color colorAt(Square square);
+        PieceType pieceTypeAt(Square square) const;
+        Color colorAt(Square square) const;
 
-        Square king(Color color);
+        Square king(Color color) const;
 
-        BitBoard attacksMask(Square square);
+        BitBoard attacksMask(Square square) const;
 
-        BitBoard attackersMask(Color color, Square square, BitBoard occupied_squares);
-        BitBoard attackersMask(Color color, Square square);
+        BitBoard attackersMask(Color color, Square square, BitBoard occupied_squares) const;
+        BitBoard attackersMask(Color color, Square square) const;
 
-        BitBoard pinMask(Color color, Square square);
+        BitBoard pinMask(Color color, Square square) const;
 
-        bool isAttackedBy(Color color, Square square);
-        bool isPinned(Color color, Square square);
+        bool isAttackedBy(Color color, Square square) const;
+        bool isPinned(Color color, Square square) const;
 
-        void print();
+        void print() const;
 
-        bool operator == (BaseBoard b);
+        bool operator == (BaseBoard b) const;
 };

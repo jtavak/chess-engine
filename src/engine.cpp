@@ -3,6 +3,8 @@
 
 #include <cstdint>
 #include <random>
+#include <unordered_map>
+#include <iostream>
 
 #ifndef INT_MIN
 #define INT_MIN -2147483648
@@ -124,56 +126,11 @@ void init_zobrist(ZobristTable* table){
 }
 
 uint64_t hash_zobrist(Board b, const ZobristTable table){
-    uint64_t hash;
-
-    BitBoard pieces;
-    pieces = b.kings;
+    uint64_t hash = 0;
 
     // hash pieces
-    while(pieces){
-        Square sq = lsb(pieces);
-        hash ^= table.pieces[sq][PAWN-1][b.colorAt(sq)];
-        pieces &= (pieces - 1);
-    }
-
-    pieces = b.knights;
-
-    while(pieces){
-        Square sq = lsb(pieces);
-        hash ^= table.pieces[sq][KNIGHT-1][b.colorAt(sq)];
-        pieces &= (pieces - 1);
-    }
-
-    pieces = b.bishops;
-
-    while(pieces){
-        Square sq = lsb(pieces);
-        hash ^= table.pieces[sq][BISHOP-1][b.colorAt(sq)];
-        pieces &= (pieces - 1);
-    }
-
-    pieces = b.rooks;
-
-    while(pieces){
-        Square sq = lsb(pieces);
-        hash ^= table.pieces[sq][ROOK-1][b.colorAt(sq)];
-        pieces &= (pieces - 1);
-    }
-
-    pieces = b.queens;
-
-    while(pieces){
-        Square sq = lsb(pieces);
-        hash ^= table.pieces[sq][QUEEN-1][b.colorAt(sq)];
-        pieces &= (pieces - 1);
-    }
-
-    pieces = b.kings;
-
-    while(pieces){
-        Square sq = lsb(pieces);
-        hash ^= table.pieces[sq][KING-1][b.colorAt(sq)];
-        pieces &= (pieces - 1);
+    for(int i = 0; i < 64; i++){
+        hash ^= table.pieces[i][b.pieceTypeAt(i)-1][b.colorAt(i)];
     }
 
     // hash castling rights
@@ -258,24 +215,47 @@ struct TTEntry {
     int value;
     uint8_t flag;
     uint8_t depth;
+
+    BitBoard pawns, knights, bishops, rooks, queens, kings, castling_rights;
+    BitBoard occupied_color[2];
+
+    Color turn;
+    Square ep_square;
+    
+    bool samePosition(Board b){
+        return pawns == b.pawns &&
+               knights == b.knights &&
+               bishops == b.bishops &&
+               rooks == b.rooks &&
+               queens == b.queens &&
+               kings == b.kings &&
+               castling_rights == b.castling_rights &&
+               occupied_color[WHITE] == b.occupied_color[WHITE] &&
+               occupied_color[BLACK] == b.occupied_color[BLACK] &&
+               turn == b.turn &&
+               ep_square == b.ep_square;
+    }
 };
 
-int negamax(Board b, int depth, int alpha, int beta, std::unordered_map<uint64_t, TTEntry>* transposition_table, const ZobristTable zobrist_table){
+int negamax(Board b, int depth, int alpha, int beta, std::unordered_map<uint64_t, TTEntry>& transposition_table, const ZobristTable z_table){
     int alpha_orig = alpha;
+    uint64_t b_hash = hash_zobrist(b, z_table);
 
-    uint64_t hash = hash_zobrist(b, zobrist_table);
-    auto map_node = transposition_table->find(hash);
-    if(map_node != transposition_table->end() && map_node->second.depth >= depth){
-        if(map_node->second.flag == EXACT){
-            return map_node->second.value;
-        } else if (map_node->second.flag == LOWER_BOUND){
-            alpha = std::max(alpha, map_node->second.value);
-        } else if (map_node->second.flag == UPPER_BOUND){
-            beta = std::min(beta, map_node->second.value);
-        }
-
-        if(alpha >= beta){
-            return map_node->second.value;
+    auto tt_iter = transposition_table.find(b_hash);
+    if(tt_iter != transposition_table.end()){
+        TTEntry t = tt_iter->second;
+        if(t.depth >= depth && t.samePosition(b)){
+            if(t.flag == EXACT){
+                return t.value;
+            } else if (t.flag == LOWER_BOUND){
+                alpha = std::max(alpha, t.value);
+            } else{
+                beta = std::min(beta, t.value);
+            }
+            
+            if(alpha >= beta){
+                return t.value;
+            }
         }
     }
 
@@ -301,9 +281,10 @@ int negamax(Board b, int depth, int alpha, int beta, std::unordered_map<uint64_t
     for(int i = 0; i < moves.size(); i++){
         b.push(moves.at(i));
 
-        value = std::max(value, -negamax(b, depth-1, -beta, -alpha, transposition_table, zobrist_table));
+        value = std::max(value, -negamax(b, depth-1, -beta, -alpha, transposition_table, z_table));
         alpha = std::max(alpha, value);
         if(alpha >= beta){
+            b.pop();
             break;
         }
         
@@ -320,12 +301,27 @@ int negamax(Board b, int depth, int alpha, int beta, std::unordered_map<uint64_t
         tte.flag = EXACT;
     }
     tte.depth = depth;
-    transposition_table->insert(std::pair(hash, tte));
 
+    tte.pawns = b.pawns;
+    tte.knights = b.knights;
+    tte.bishops = b.bishops;
+    tte.rooks = b.rooks;
+    tte.queens = b.queens;
+    tte.kings = b.kings;
+    tte.castling_rights = b.castling_rights;
+
+    tte.occupied_color[WHITE] = b.occupied_color[WHITE];
+    tte.occupied_color[BLACK] = b.occupied_color[BLACK];
+
+    tte.turn = b.turn;
+    tte.ep_square = b.ep_square;
+
+    transposition_table[b_hash] = tte;
+ 
     return value;
 }
 
-std::pair<int, Move> searchRoot(Board b, int depth, const ZobristTable zobrist_table){
+std::pair<int, Move> searchRoot(Board b, int depth, const ZobristTable z_table){
     std::vector<Move> moves = b.generateLegalMoves();
 
     if(moves.empty()){
@@ -342,7 +338,7 @@ std::pair<int, Move> searchRoot(Board b, int depth, const ZobristTable zobrist_t
     for(int i = 0; i < moves.size(); i++){
         b.push(moves.at(i));
 
-        int score = -negamax(b, depth-1, -beta, -alpha, &transposition_table, zobrist_table);
+        int score = -negamax(b, depth-1, -beta, -alpha, transposition_table, z_table);
 
         if(score >= beta){
             return std::pair(beta, moves.at(i));

@@ -364,7 +364,7 @@ void BaseBoard::setPieceAt(Square square, PieceType piecetype, Color color){
 }
 
 // Returns BitBoard mask of squares with PieceType and Color
-BitBoard BaseBoard::piecesMask(PieceType piecetype, Color color){
+BitBoard BaseBoard::piecesMask(PieceType piecetype, Color color) const{
     BitBoard bb;
     switch(piecetype){
         case PAWN:
@@ -399,7 +399,7 @@ BitBoard BaseBoard::piecesMask(PieceType piecetype, Color color){
 }
 
 // Returns pieceType at a square or NO_PIECE
-PieceType BaseBoard::pieceTypeAt(Square square){
+PieceType BaseBoard::pieceTypeAt(Square square) const{
     BitBoard mask = BB_SQUARES[square];
 
     if(!(occupied & mask)){
@@ -421,7 +421,7 @@ PieceType BaseBoard::pieceTypeAt(Square square){
 }
 
 // Returns the Color at a square or NO_COLOR
-Color BaseBoard::colorAt(Square square){
+Color BaseBoard::colorAt(Square square) const{
     BitBoard mask = BB_SQUARES[square];
 
     if(occupied_color[WHITE] & mask){
@@ -434,13 +434,13 @@ Color BaseBoard::colorAt(Square square){
 }
 
 // Returns Square containing the king of one color
-Square BaseBoard::king(Color color){
+Square BaseBoard::king(Color color) const{
     
     return msb(occupied_color[color] & kings);
 }
 
 // Returns a BitBoard mask of all possible attacks from a square
-BitBoard BaseBoard::attacksMask(Square square){
+BitBoard BaseBoard::attacksMask(Square square) const{
     BitBoard bb_square = BB_SQUARES[square];
     
     if(bb_square & pawns){
@@ -464,7 +464,7 @@ BitBoard BaseBoard::attacksMask(Square square){
     }
 }
 
-BitBoard BaseBoard::attackersMask(Color color, Square square, BitBoard occupied_squares){
+BitBoard BaseBoard::attackersMask(Color color, Square square, BitBoard occupied_squares) const{
     BitBoard rank_pieces = BB_RANK_MASKS[square] & occupied_squares;
     BitBoard file_pieces = BB_FILE_MASKS[square] & occupied_squares;
     BitBoard diag_pieces = BB_DIAG_MASKS[square] & occupied_squares;
@@ -484,15 +484,15 @@ BitBoard BaseBoard::attackersMask(Color color, Square square, BitBoard occupied_
     return attackers & occupied_color[color];
 }
 
-BitBoard BaseBoard::attackersMask(Color color, Square square){
+BitBoard BaseBoard::attackersMask(Color color, Square square) const{
     return attackersMask(color, square, occupied);
 }
 
-bool BaseBoard::isAttackedBy(Color color, Square square){
+bool BaseBoard::isAttackedBy(Color color, Square square) const{
     return (bool) attackersMask(color, square);
 }
 
-BitBoard BaseBoard::pinMask(Color color, Square square){
+BitBoard BaseBoard::pinMask(Color color, Square square) const{
     BitBoard king_square = king(color);
     BitBoard square_mask = BB_SQUARES[square];
 
@@ -549,12 +549,12 @@ BitBoard BaseBoard::pinMask(Color color, Square square){
     return BB_ALL;
 }
 
-bool BaseBoard::isPinned(Color color, Square square){
+bool BaseBoard::isPinned(Color color, Square square) const{
     return pinMask(color, square) != BB_ALL;
 }
 
 // Prints the chess board with white on bottom
-void BaseBoard::print(){
+void BaseBoard::print() const{
 
     for(int i = 7; i >= 0; i--){
         for(int j = 0; j < 8; j++){
@@ -601,7 +601,7 @@ void BaseBoard::print(){
     }
 }
 
-bool BaseBoard::operator == (BaseBoard b){
+bool BaseBoard::operator == (BaseBoard b) const{
     return b.pawns == pawns &&
            b.knights == knights &&
            b.bishops == bishops && 

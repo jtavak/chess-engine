@@ -138,7 +138,7 @@ Move Board::pop(){
     return move;
 }
 
-bool Board::attackedForKing(BitBoard path, BitBoard occupied_squares){
+bool Board::attackedForKing(BitBoard path, BitBoard occupied_squares) const{
     Color opp_turn = (turn==WHITE) ? BLACK : WHITE;
     while(path){
         if(attackersMask(opp_turn, lsb(path), occupied_squares)){
@@ -149,7 +149,7 @@ bool Board::attackedForKing(BitBoard path, BitBoard occupied_squares){
     return false;
 }
 
-std::vector<Move> Board::generatePseudoLegalMoves(BitBoard from_mask, BitBoard to_mask){
+const std::vector<Move> Board::generatePseudoLegalMoves(BitBoard from_mask, BitBoard to_mask) const{
     std::vector<Move> moves;
 
     BitBoard our_pieces = occupied_color[turn];
@@ -305,11 +305,11 @@ std::vector<Move> Board::generatePseudoLegalMoves(BitBoard from_mask, BitBoard t
     return moves;
 }
 
-std::vector<Move> Board::generatePseudoLegalMoves(){
+const std::vector<Move> Board::generatePseudoLegalMoves() const{
     return generatePseudoLegalMoves(BB_ALL, BB_ALL);
 }
 
-Move Board::generatePseudoLegalEP(BitBoard from_mask, BitBoard to_mask){
+Move Board::generatePseudoLegalEP(BitBoard from_mask, BitBoard to_mask) const{
     Color opp_turn = (turn==WHITE) ? BLACK : WHITE;
 
     BitBoard ep_rank = (turn == WHITE) ? BB_RANK_5 : BB_RANK_4;
@@ -326,11 +326,11 @@ Move Board::generatePseudoLegalEP(BitBoard from_mask, BitBoard to_mask){
     return NO_MOVE;
 }
 
-Move Board::generatePseudoLegalEP(){
+Move Board::generatePseudoLegalEP() const{
     return generatePseudoLegalEP(BB_ALL, BB_ALL);
 }
 
-bool Board::isPseudoLegal(Move move){
+bool Board::isPseudoLegal(Move move) const{
     for(auto pseudo_legal_move: generatePseudoLegalMoves()){
         if(pseudo_legal_move == move){
             return true;
@@ -339,7 +339,7 @@ bool Board::isPseudoLegal(Move move){
     return false;
 }
 
-bool Board::isCastling(Move move){
+bool Board::isCastling(Move move) const{
     if(kings & BB_SQUARES[move.from_square]){
         int diff = squareFile(move.from_square) - squareFile(move.to_square);
         return (abs(diff) > 1) || (bool)(rooks & occupied_color[turn] & BB_SQUARES[move.to_square]);
@@ -347,14 +347,14 @@ bool Board::isCastling(Move move){
     return false;
 }
 
-bool Board::isEnPassant(Move move){
+bool Board::isEnPassant(Move move) const{
     return (ep_square == move.to_square) &&
            (bool)(pawns & BB_SQUARES[move.from_square]) && 
            (abs(move.to_square - move.from_square) == 7 || abs(move.to_square - move.from_square) == 9) &&
            !(occupied & BB_SQUARES[move.to_square]);
 }
 
-bool Board::isIntoCheck(Move move){
+bool Board::isIntoCheck(Move move) const{
     Square king_square = king(turn);
 
     Color opp_turn = (turn==WHITE) ? BLACK : WHITE;
@@ -372,36 +372,36 @@ bool Board::isIntoCheck(Move move){
 
 }
 
-bool Board::isZeroing(Move move){
+bool Board::isZeroing(Move move) const{
     Color opp_turn = (turn==WHITE) ? BLACK : WHITE;
     BitBoard touched = BB_SQUARES[move.from_square] ^ BB_SQUARES[move.to_square];
 
     return (touched & pawns) || (touched & occupied_color[opp_turn]);
 }
 
-bool Board::isCapture(Move move){
+bool Board::isCapture(Move move) const{
     Color opp_turn = (turn==WHITE) ? BLACK : WHITE;
     BitBoard touched = BB_SQUARES[move.from_square] ^ BB_SQUARES[move.to_square];
 
     return (touched & occupied_color[opp_turn]) || isEnPassant(move);
 }
 
-bool Board::isLegal(Move move){
+bool Board::isLegal(Move move) const{
     return isPseudoLegal(move) && !isIntoCheck(move);
 }
 
-BitBoard Board::checkersMask(){
+BitBoard Board::checkersMask() const{
     Square our_king = king(turn);
     Color opp_turn = (turn==WHITE) ? BLACK : WHITE;
 
     return attackersMask(opp_turn, our_king);
 }
 
-bool Board::isCheck(){
+bool Board::isCheck() const{
     return (bool)checkersMask();
 }
 
-bool Board::isCheckmate(){
+bool Board::isCheckmate() const{
     if(!isCheck()){
         return false;
     }
@@ -409,14 +409,14 @@ bool Board::isCheckmate(){
     return generateLegalMoves().empty();
 }
 
-bool Board::isStalemate(){
+bool Board::isStalemate() const{
     if(isCheck()){
         return false;
     }
     return generateLegalMoves().empty();
 }
 
-bool Board::hasInsufficientMaterial(Color color){
+bool Board::hasInsufficientMaterial(Color color) const{
     Color opp_color = (turn==WHITE) ? BLACK : WHITE;
 
     if(occupied_color[color] & (pawns | rooks | queens)){
@@ -435,19 +435,19 @@ bool Board::hasInsufficientMaterial(Color color){
     return true;
 }
 
-bool Board::isInsufficientMaterial(){
+bool Board::isInsufficientMaterial() const{
     return hasInsufficientMaterial(WHITE) && hasInsufficientMaterial(BLACK);
 }
 
-bool Board::isHalfmoves(int n){
+bool Board::isHalfmoves(int n) const{
     return halfmove_clock >= n && !generateLegalMoves().empty();
 }
 
-bool Board::isFiftyMoves(){
+bool Board::isFiftyMoves() const{
     return isHalfmoves(100);
 }
 
-Outcome Board::gameOutcome(){
+Outcome Board::gameOutcome() const{
     if(isInsufficientMaterial() || isFiftyMoves()){
         return DRAW;
     }
@@ -462,7 +462,7 @@ Outcome Board::gameOutcome(){
     return NO_OUTCOME;
 }
 
-bool Board::EPSkewered(Square king_square, Square capturer_square){
+bool Board::EPSkewered(Square king_square, Square capturer_square) const{
     Color opp_turn = (turn==WHITE) ? BLACK : WHITE;
     int delta = (turn == WHITE) ? -8 : 8;
     Square last_double = ep_square + delta;
@@ -482,7 +482,7 @@ bool Board::EPSkewered(Square king_square, Square capturer_square){
     return false;
 }
 
-BitBoard Board::sliderBlockers(Square king_square){
+BitBoard Board::sliderBlockers(Square king_square) const{
     Color opp_turn = (turn==WHITE) ? BLACK : WHITE;
 
     BitBoard rooks_and_queens = rooks | queens;
@@ -511,7 +511,7 @@ BitBoard Board::sliderBlockers(Square king_square){
     return blockers & occupied_color[turn];
 }
 
-bool Board::isSafe(Square king_square, BitBoard blockers, Move move){
+bool Board::isSafe(Square king_square, BitBoard blockers, Move move) const{
     Color opp_turn = (turn==WHITE) ? BLACK : WHITE;
 
     if(move.from_square == king_square){
@@ -531,7 +531,7 @@ bool Board::isSafe(Square king_square, BitBoard blockers, Move move){
            (ray(move.from_square, move.to_square) & BB_SQUARES[king_square]);
 }
 
-std::vector<Move> Board::generateEvasions(Square king_square, BitBoard checkers, BitBoard from_mask, BitBoard to_mask){
+const std::vector<Move> Board::generateEvasions(Square king_square, BitBoard checkers, BitBoard from_mask, BitBoard to_mask) const{
     std::vector<Move> moves;
 
     BitBoard sliders = checkers & (bishops | rooks | queens);
@@ -572,7 +572,7 @@ std::vector<Move> Board::generateEvasions(Square king_square, BitBoard checkers,
     return moves;
 }
 
-std::vector<Move> Board::generateLegalMoves(BitBoard from_mask, BitBoard to_mask){
+const std::vector<Move> Board::generateLegalMoves(BitBoard from_mask, BitBoard to_mask) const{
     std::vector<Move> moves;
 
     Color opp_turn = (turn==WHITE) ? BLACK : WHITE;
@@ -600,7 +600,7 @@ std::vector<Move> Board::generateLegalMoves(BitBoard from_mask, BitBoard to_mask
     return moves;
 }
 
-std::vector<Move> Board::generateLegalMoves(){
+const std::vector<Move> Board::generateLegalMoves() const{
     return generateLegalMoves(BB_ALL, BB_ALL);
 }
 
@@ -670,7 +670,7 @@ void Board::pushUCI(std::string uci){
     }
 } 
 
-void Board::print(){
+void Board::print() const{
     BaseBoard::print();
     std::cout << std::endl;
 }
