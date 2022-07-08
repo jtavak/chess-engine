@@ -103,7 +103,7 @@ void Board::push(Move move){
     }
 
     // handle castling
-    bool castling = piece_type == KING && (occupied_color[turn] & to_bb);
+    bool castling = piece_type == KING && squareDistance(move.from_square, move.to_square) > 1;
     if(castling){
         bool a_side = squareFile(move.to_square) < squareFile(move.from_square);
 
@@ -113,9 +113,11 @@ void Board::push(Move move){
         if(a_side){
             setPieceAt((turn == WHITE) ? C1 : C8, KING, turn);
             setPieceAt((turn == WHITE) ? D1 : D8, ROOK, turn);
+            removePieceAt((turn == WHITE) ? A1 : A8);
         } else {
             setPieceAt((turn == WHITE) ? G1 : G8, KING, turn);
             setPieceAt((turn == WHITE) ? F1 : F8, ROOK, turn);
+            removePieceAt((turn == WHITE) ? H1 : H8);
         }
     } else {
         setPieceAt(move.to_square, piece_type, turn);

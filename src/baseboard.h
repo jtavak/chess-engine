@@ -11,6 +11,7 @@ int popcount(BitBoard bb);
 
 int squareFile(Square square);
 int squareRank(Square square);
+int squareDistance(Square s1, Square s2);
 
 void printBitBoard(BitBoard bb);
 
