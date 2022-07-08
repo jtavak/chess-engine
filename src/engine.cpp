@@ -3,7 +3,11 @@
 
 #include <cstdint>
 #include <random>
-#include <bits/stdc++.h>
+
+#ifndef INT_MIN
+#define INT_MIN -2147483648
+#define INT_MAX 2147483647
+#endif
 
 const int8_t PAWN_TABLE[64] = {
     0,  0,  0,  0,  0,  0,  0,  0,
