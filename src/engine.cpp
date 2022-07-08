@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <random>
+#include <bits/stdc++.h>
 
 const int8_t PAWN_TABLE[64] = {
     0,  0,  0,  0,  0,  0,  0,  0,
