@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <random>
 #include <unordered_map>
-#include <iostream>
 
 #ifndef INT_MIN
 #define INT_MIN -2147483648
@@ -125,12 +124,44 @@ void init_zobrist(ZobristTable* table){
     table->black_to_move = randBitBoard();
 }
 
-uint64_t hash_zobrist(Board b, const ZobristTable table){
+uint64_t hash_zobrist(const Board b, const ZobristTable table){
     uint64_t hash = 0;
 
     // hash pieces
-    for(int i = 0; i < 64; i++){
-        hash ^= table.pieces[i][b.pieceTypeAt(i)-1][b.colorAt(i)];
+    BitBoard pawns = b.pawns;
+    while(pawns){
+        hash ^= table.pieces[lsb(pawns)][PAWN-1][b.colorAt(lsb(pawns))];
+        pawns &= (pawns - 1);
+    }
+
+    BitBoard knights = b.knights;
+    while(knights){
+        hash ^= table.pieces[lsb(knights)][KNIGHT-1][b.colorAt(lsb(knights))];
+        knights &= (knights - 1);
+    }
+
+    BitBoard bishops = b.bishops;
+    while(bishops){
+        hash ^= table.pieces[lsb(bishops)][BISHOP-1][b.colorAt(lsb(bishops))];
+        bishops &= (bishops - 1);
+    }
+
+    BitBoard rooks = b.rooks;
+    while(rooks){
+        hash ^= table.pieces[lsb(rooks)][ROOK-1][b.colorAt(lsb(rooks))];
+        rooks &= (rooks - 1);
+    }
+
+    BitBoard queens = b.queens;
+    while(queens){
+        hash ^= table.pieces[lsb(queens)][QUEEN-1][b.colorAt(lsb(queens))];
+        queens &= (queens - 1);
+    }
+
+    BitBoard kings = b.kings;
+    while(kings){
+        hash ^= table.pieces[lsb(kings)][KING-1][b.colorAt(lsb(kings))];
+        kings &= (kings - 1);
     }
 
     // hash castling rights
@@ -271,7 +302,7 @@ int negamax(Board b, int depth, int alpha, int beta, std::unordered_map<uint64_t
 
     if(moves.empty()){
         if(b.isCheck()){
-            return (b.turn == WHITE) ? 30000 : -30000;
+            return (b.turn == WHITE) ? 30000+depth : -30000-depth;
         }
         return 0;
     }
@@ -325,7 +356,7 @@ std::pair<int, Move> searchRoot(Board b, int depth, const ZobristTable z_table){
     std::vector<Move> moves = b.generateLegalMoves();
 
     if(moves.empty()){
-        return std::pair(0, NO_MOVE);
+        return std::pair<int, Move>(0, NO_MOVE);
     }
 
     int alpha = INT_MIN+1;
@@ -341,7 +372,7 @@ std::pair<int, Move> searchRoot(Board b, int depth, const ZobristTable z_table){
         int score = -negamax(b, depth-1, -beta, -alpha, transposition_table, z_table);
 
         if(score >= beta){
-            return std::pair(beta, moves.at(i));
+            return std::pair<int, Move>(beta, moves.at(i));
         }
 
         if(score > alpha){
@@ -352,5 +383,5 @@ std::pair<int, Move> searchRoot(Board b, int depth, const ZobristTable z_table){
         b.pop();
     }
 
-    return std::pair(alpha, moves.at(best));
+    return std::pair<int, Move>(alpha, moves.at(best));
 }

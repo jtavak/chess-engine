@@ -22,6 +22,13 @@ bool Move::operator == (Move move){
     return false;
 }
 
+bool Move::operator != (Move move){
+    if(move.from_square == from_square && move.to_square == to_square && move.promotion == promotion){
+        return false;
+    }
+    return true;
+}
+
 std::string Move::toUCI(){
     std::string promotion_letter;
 

@@ -15,6 +15,7 @@ class Move{
         Move(std::string uci);
 
         bool operator == (Move move);
+        bool operator != (Move move);
 
         std::string toUCI();
 };

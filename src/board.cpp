@@ -564,7 +564,10 @@ const std::vector<Move> Board::generateEvasions(Square king_square, BitBoard che
             int delta = (turn == WHITE) ? -8 : 8;
             Square last_double = ep_square + delta;
             if(last_double == checker){
-                moves.push_back(generatePseudoLegalEP(from_mask, to_mask));
+                Move ep_move = generatePseudoLegalEP(from_mask, to_mask);
+                if(ep_move != NO_MOVE){
+                    moves.push_back(ep_move);
+                }
             }
         }
     }
