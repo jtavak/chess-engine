@@ -77,23 +77,19 @@ const int8_t KING_TABLE[64] = {
 };
 
 inline int dotProduct(BitBoard bb, const int8_t weights[]){
-    BitBoard bit = 1;
     int accu = 0;
-    for(int sq = 0; sq < 64; sq++, bit <<= 1){
-        if(bb & bit){
-            accu += weights[sq];
-        }
+    while(bb){
+        accu += weights[lsb(bb)];
+        bb &= (bb - 1);
     }
     return accu;
 }
 
 inline int dotProductReverse(BitBoard bb, const int8_t weights[]){
-    BitBoard bit = BB_H8;
     int accu = 0;
-    for(int sq = 0; sq < 64; sq++, bit >>= 1){
-        if(bb & bit){
-            accu += weights[sq];
-        }
+    while(bb){
+        accu += weights[63-lsb(bb)];
+        bb &= (bb - 1);
     }
     return accu;
 }
