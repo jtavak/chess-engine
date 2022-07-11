@@ -496,8 +496,6 @@ BitBoard BaseBoard::pinMask(Color color, Square square) const{
     BitBoard king_square = king(color);
     BitBoard square_mask = BB_SQUARES[square];
 
-    Color opposite_color = (color==WHITE) ? BLACK : WHITE;
-
     BitBoard rays;
     BitBoard sliders;
     BitBoard snipers;
@@ -507,7 +505,7 @@ BitBoard BaseBoard::pinMask(Color color, Square square) const{
     sliders = rooks | queens;
 
     if(rays & square_mask){
-        snipers = rays & sliders & occupied_color[opposite_color];
+        snipers = rays & sliders & occupied_color[color ^ 1];
         while(snipers){
             if((between(lsb(snipers), king_square) & (occupied | square_mask)) == square_mask){
                 return ray(lsb(snipers), king_square);
@@ -522,7 +520,7 @@ BitBoard BaseBoard::pinMask(Color color, Square square) const{
     sliders = rooks | queens;
 
     if(rays & square_mask){
-        snipers = rays & sliders & occupied_color[opposite_color];
+        snipers = rays & sliders & occupied_color[color ^ 1];
         while(snipers){
             if((between(lsb(snipers), king_square) & (occupied | square_mask)) == square_mask){
                 return ray(lsb(snipers), king_square);
@@ -537,7 +535,7 @@ BitBoard BaseBoard::pinMask(Color color, Square square) const{
     sliders = bishops | queens;
 
     if(rays & square_mask){
-        snipers = rays & sliders & occupied_color[opposite_color];
+        snipers = rays & sliders & occupied_color[color ^ 1];
         while(snipers){
             if((between(lsb(snipers), king_square) & (occupied | square_mask)) == square_mask){
                 return ray(lsb(snipers), king_square);
