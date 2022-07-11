@@ -14,8 +14,8 @@ class Move{
         Move(Square from, Square to, PieceType p);
         Move(std::string uci);
 
-        bool operator == (Move move);
-        bool operator != (Move move);
+        bool operator == (const Move& move);
+        bool operator != (const Move& move);
 
         std::string toUCI();
 };

@@ -64,5 +64,5 @@ class BaseBoard{
 
         void print() const;
 
-        bool operator == (BaseBoard b) const;
+        bool operator == (const BaseBoard& b) const;
 };

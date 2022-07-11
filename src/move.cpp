@@ -15,14 +15,14 @@ Move::Move(Square from, Square to){
     promotion = NO_PIECE;
 }
 
-bool Move::operator == (Move move){
+bool Move::operator == (const Move& move){
     if(move.from_square == from_square && move.to_square == to_square && move.promotion == promotion){
         return true;
     }
     return false;
 }
 
-bool Move::operator != (Move move){
+bool Move::operator != (const Move& move){
     if(move.from_square == from_square && move.to_square == to_square && move.promotion == promotion){
         return false;
     }

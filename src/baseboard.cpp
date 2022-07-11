@@ -601,7 +601,7 @@ void BaseBoard::print() const{
     }
 }
 
-bool BaseBoard::operator == (BaseBoard b) const{
+bool BaseBoard::operator == (const BaseBoard& b) const{
     return b.pawns == pawns &&
            b.knights == knights &&
            b.bishops == bishops && 

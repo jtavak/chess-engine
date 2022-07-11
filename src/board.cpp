@@ -45,7 +45,7 @@ void Board::clearStack(){
     state_stack.clear();
 }
 
-void Board::push(Move move){
+void Board::push(const Move& move){
     // add current position to stack
     state_stack.push_back(BoardState(this));
     move_stack.push_back(move);
@@ -330,7 +330,7 @@ Move Board::generatePseudoLegalEP() const{
     return generatePseudoLegalEP(BB_ALL, BB_ALL);
 }
 
-bool Board::isPseudoLegal(Move move) const{
+bool Board::isPseudoLegal(const Move& move) const{
     for(auto pseudo_legal_move: generatePseudoLegalMoves()){
         if(pseudo_legal_move == move){
             return true;
@@ -339,7 +339,7 @@ bool Board::isPseudoLegal(Move move) const{
     return false;
 }
 
-bool Board::isCastling(Move move) const{
+bool Board::isCastling(const Move& move) const{
     if(kings & BB_SQUARES[move.from_square]){
         int diff = squareFile(move.from_square) - squareFile(move.to_square);
         return (abs(diff) > 1) || (bool)(rooks & occupied_color[turn] & BB_SQUARES[move.to_square]);
@@ -347,14 +347,14 @@ bool Board::isCastling(Move move) const{
     return false;
 }
 
-bool Board::isEnPassant(Move move) const{
+bool Board::isEnPassant(const Move& move) const{
     return (ep_square == move.to_square) &&
            (bool)(pawns & BB_SQUARES[move.from_square]) && 
            (abs(move.to_square - move.from_square) == 7 || abs(move.to_square - move.from_square) == 9) &&
            !(occupied & BB_SQUARES[move.to_square]);
 }
 
-bool Board::isIntoCheck(Move move) const{
+bool Board::isIntoCheck(const Move& move) const{
     Square king_square = king(turn);
 
     Color opp_turn = (turn==WHITE) ? BLACK : WHITE;
@@ -372,21 +372,21 @@ bool Board::isIntoCheck(Move move) const{
 
 }
 
-bool Board::isZeroing(Move move) const{
+bool Board::isZeroing(const Move& move) const{
     Color opp_turn = (turn==WHITE) ? BLACK : WHITE;
     BitBoard touched = BB_SQUARES[move.from_square] ^ BB_SQUARES[move.to_square];
 
     return (touched & pawns) || (touched & occupied_color[opp_turn]);
 }
 
-bool Board::isCapture(Move move) const{
+bool Board::isCapture(const Move& move) const{
     Color opp_turn = (turn==WHITE) ? BLACK : WHITE;
     BitBoard touched = BB_SQUARES[move.from_square] ^ BB_SQUARES[move.to_square];
 
     return (touched & occupied_color[opp_turn]) || isEnPassant(move);
 }
 
-bool Board::isLegal(Move move) const{
+bool Board::isLegal(const Move& move) const{
     return isPseudoLegal(move) && !isIntoCheck(move);
 }
 
@@ -678,7 +678,7 @@ void Board::print() const{
     std::cout << std::endl;
 }
 
-bool Board::operator == (Board b){
+bool Board::operator == (const Board& b){
     return b.pawns == pawns &&
            b.knights == knights &&
            b.bishops == bishops && 

@@ -76,7 +76,7 @@ const int8_t KING_TABLE[64] = {
      20, 30, 10,  0,  0, 10, 30, 20
 };
 
-int dotProduct(BitBoard bb, const int8_t weights[]){
+inline int dotProduct(BitBoard bb, const int8_t weights[]){
     BitBoard bit = 1;
     int accu = 0;
     for(int sq = 0; sq < 64; sq++, bit <<= 1){
@@ -87,7 +87,7 @@ int dotProduct(BitBoard bb, const int8_t weights[]){
     return accu;
 }
 
-int dotProductReverse(BitBoard bb, const int8_t weights[]){
+inline int dotProductReverse(BitBoard bb, const int8_t weights[]){
     BitBoard bit = BB_H8;
     int accu = 0;
     for(int sq = 0; sq < 64; sq++, bit >>= 1){
@@ -124,7 +124,7 @@ void init_zobrist(ZobristTable* table){
     table->black_to_move = randBitBoard();
 }
 
-uint64_t hash_zobrist(const Board b, const ZobristTable table){
+uint64_t hash_zobrist(const Board& b, const ZobristTable& table){
     uint64_t hash = 0;
 
     // hash pieces
@@ -192,7 +192,7 @@ uint64_t hash_zobrist(const Board b, const ZobristTable table){
 }
 
 // optimize for current color
-int evaluation(Board b){
+int evaluation(const Board& b){
     int centipawn = 0;
 
     Color turn = b.turn;
@@ -253,7 +253,7 @@ struct TTEntry {
     Color turn;
     Square ep_square;
     
-    bool samePosition(Board b){
+    bool samePosition(const Board& b){
         return pawns == b.pawns &&
                knights == b.knights &&
                bishops == b.bishops &&
@@ -268,7 +268,7 @@ struct TTEntry {
     }
 };
 
-int negamax(Board b, int depth, int alpha, int beta, std::unordered_map<uint64_t, TTEntry>& transposition_table, const ZobristTable z_table){
+int negamax(Board& b, int depth, int alpha, int beta, std::unordered_map<uint64_t, TTEntry>& transposition_table, const ZobristTable& z_table){
     int alpha_orig = alpha;
     uint64_t b_hash = hash_zobrist(b, z_table);
 
@@ -352,7 +352,7 @@ int negamax(Board b, int depth, int alpha, int beta, std::unordered_map<uint64_t
     return value;
 }
 
-std::pair<int, Move> searchRoot(Board b, int depth, const ZobristTable z_table){
+std::pair<int, Move> searchRoot(Board& b, int depth, const ZobristTable& z_table){
     std::vector<Move> moves = b.generateLegalMoves();
 
     if(moves.empty()){

@@ -61,7 +61,7 @@ class Board: public BaseBoard{
         void resetBoard();
         void clearBoard();
 
-        void push(Move move);
+        void push(const Move& move);
         Move pop();
 
         const std::vector<Move> generateLegalMoves() const;
@@ -69,13 +69,13 @@ class Board: public BaseBoard{
 
         Move generatePseudoLegalEP() const;
 
-        bool isPseudoLegal(Move move) const; 
-        bool isCastling(Move move) const;
-        bool isEnPassant(Move move) const;
-        bool isIntoCheck(Move move) const;
-        bool isZeroing(Move move) const;
-        bool isCapture(Move move) const;
-        bool isLegal(Move move) const;
+        bool isPseudoLegal(const Move& move) const; 
+        bool isCastling(const Move& move) const;
+        bool isEnPassant(const Move& move) const;
+        bool isIntoCheck(const Move& move) const;
+        bool isZeroing(const Move& move) const;
+        bool isCapture(const Move& move) const;
+        bool isLegal(const Move& move) const;
 
 
         BitBoard checkersMask() const;
@@ -95,5 +95,5 @@ class Board: public BaseBoard{
 
         void print() const;
 
-        bool operator == (Board b);
+        bool operator == (const Board& b);
 };
