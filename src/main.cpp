@@ -1,6 +1,8 @@
 #include <iostream>
 #include <cstdint>
 
+#include <chrono>
+
 #include "engine.h"
 #include "board.h"
 
@@ -9,9 +11,8 @@ using namespace std;
 int main(){
     Board b = Board();
 
-    ZobristTable t;
-    init_zobrist(&t);
-    const ZobristTable table = t;
+    ZobristTable table;
+    initZobrist(table);
 
     while(b.gameOutcome() == NO_OUTCOME){
         b.print();

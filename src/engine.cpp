@@ -101,26 +101,26 @@ BitBoard randBitBoard(){
     return random_bb;
 }
 
-void init_zobrist(ZobristTable* table){
+void initZobrist(ZobristTable& table){
     for(int i = 0; i < 64; i++){
         for(int j = 0; j < 6; j++){
-            table->pieces[i][j][WHITE] = randBitBoard();
-            table->pieces[i][j][BLACK] = randBitBoard();
+            table.pieces[i][j][WHITE] = randBitBoard();
+            table.pieces[i][j][BLACK] = randBitBoard();
         }
     }
 
     for(int i = 0; i < 8; i++){
-        table->ep_files[i] = randBitBoard();
+        table.ep_files[i] = randBitBoard();
     }
 
     for(int i = 0; i < 4; i++){
-        table->castling_rights[i] = randBitBoard();
+        table.castling_rights[i] = randBitBoard();
     }
 
-    table->black_to_move = randBitBoard();
+    table.black_to_move = randBitBoard();
 }
 
-uint64_t hash_zobrist(const Board& b, const ZobristTable& table){
+uint64_t hashZobrist(const Board& b, const ZobristTable& table){
     uint64_t hash = 0;
 
     // hash pieces
@@ -192,43 +192,42 @@ int evaluation(const Board& b){
     int centipawn = 0;
 
     Color turn = b.turn;
-    Color opp_turn = (turn==WHITE) ? BLACK : WHITE;
 
     // material values
     centipawn += popcount(b.pawns & b.occupied_color[turn]) * 100;
-    centipawn -= popcount(b.pawns & b.occupied_color[opp_turn]) * 100;
+    centipawn -= popcount(b.pawns & b.occupied_color[turn ^ 1]) * 100;
 
     centipawn += popcount(b.knights & b.occupied_color[turn]) * 320;
-    centipawn -= popcount(b.knights & b.occupied_color[opp_turn]) * 320;
+    centipawn -= popcount(b.knights & b.occupied_color[turn ^ 1]) * 320;
 
     centipawn += popcount(b.bishops & b.occupied_color[turn]) * 330;
-    centipawn -= popcount(b.bishops & b.occupied_color[opp_turn]) * 330;
+    centipawn -= popcount(b.bishops & b.occupied_color[turn ^ 1]) * 330;
 
     centipawn += popcount(b.rooks & b.occupied_color[turn]) * 500;
-    centipawn -= popcount(b.rooks & b.occupied_color[opp_turn]) * 500;
+    centipawn -= popcount(b.rooks & b.occupied_color[turn ^ 1]) * 500;
 
     centipawn += popcount(b.queens & b.occupied_color[turn]) * 900;
-    centipawn -= popcount(b.queens & b.occupied_color[opp_turn]) * 900;
+    centipawn -= popcount(b.queens & b.occupied_color[turn ^ 1]) * 900;
 
     // piece-position tables
 
     centipawn += dotProductReverse(b.pawns & b.occupied_color[turn], PAWN_TABLE);
-    centipawn -= dotProduct(b.pawns & b.occupied_color[opp_turn], PAWN_TABLE);
+    centipawn -= dotProduct(b.pawns & b.occupied_color[turn ^ 1], PAWN_TABLE);
 
     centipawn += dotProductReverse(b.knights & b.occupied_color[turn], KNIGHT_TABLE);
-    centipawn -= dotProduct(b.knights & b.occupied_color[opp_turn], KNIGHT_TABLE);
+    centipawn -= dotProduct(b.knights & b.occupied_color[turn ^ 1], KNIGHT_TABLE);
 
     centipawn += dotProductReverse(b.bishops & b.occupied_color[turn], BISHOP_TABLE);
-    centipawn -= dotProduct(b.bishops & b.occupied_color[opp_turn], BISHOP_TABLE);
+    centipawn -= dotProduct(b.bishops & b.occupied_color[turn ^ 1], BISHOP_TABLE);
 
     centipawn += dotProductReverse(b.rooks & b.occupied_color[turn], ROOK_TABLE);
-    centipawn -= dotProduct(b.rooks & b.occupied_color[opp_turn], ROOK_TABLE);
+    centipawn -= dotProduct(b.rooks & b.occupied_color[turn ^ 1], ROOK_TABLE);
 
     centipawn += dotProductReverse(b.queens & b.occupied_color[turn], QUEEN_TABLE);
-    centipawn -= dotProduct(b.queens & b.occupied_color[opp_turn], QUEEN_TABLE);
+    centipawn -= dotProduct(b.queens & b.occupied_color[turn ^ 1], QUEEN_TABLE);
 
     centipawn += dotProductReverse(b.kings & b.occupied_color[turn], KING_TABLE);
-    centipawn -= dotProduct(b.kings & b.occupied_color[opp_turn], KING_TABLE);
+    centipawn -= dotProduct(b.kings & b.occupied_color[turn ^ 1], KING_TABLE);
 
 
     return centipawn;
@@ -242,36 +241,16 @@ struct TTEntry {
     int value;
     uint8_t flag;
     uint8_t depth;
-
-    BitBoard pawns, knights, bishops, rooks, queens, kings, castling_rights;
-    BitBoard occupied_color[2];
-
-    Color turn;
-    Square ep_square;
-    
-    bool samePosition(const Board& b){
-        return pawns == b.pawns &&
-               knights == b.knights &&
-               bishops == b.bishops &&
-               rooks == b.rooks &&
-               queens == b.queens &&
-               kings == b.kings &&
-               castling_rights == b.castling_rights &&
-               occupied_color[WHITE] == b.occupied_color[WHITE] &&
-               occupied_color[BLACK] == b.occupied_color[BLACK] &&
-               turn == b.turn &&
-               ep_square == b.ep_square;
-    }
 };
 
 int negamax(Board& b, int depth, int alpha, int beta, std::unordered_map<uint64_t, TTEntry>& transposition_table, const ZobristTable& z_table){
     int alpha_orig = alpha;
-    uint64_t b_hash = hash_zobrist(b, z_table);
+    uint64_t b_hash = hashZobrist(b, z_table);
 
     auto tt_iter = transposition_table.find(b_hash);
     if(tt_iter != transposition_table.end()){
         TTEntry t = tt_iter->second;
-        if(t.depth >= depth && t.samePosition(b)){
+        if(t.depth >= depth){
             if(t.flag == EXACT){
                 return t.value;
             } else if (t.flag == LOWER_BOUND){
@@ -328,20 +307,6 @@ int negamax(Board& b, int depth, int alpha, int beta, std::unordered_map<uint64_
         tte.flag = EXACT;
     }
     tte.depth = depth;
-
-    tte.pawns = b.pawns;
-    tte.knights = b.knights;
-    tte.bishops = b.bishops;
-    tte.rooks = b.rooks;
-    tte.queens = b.queens;
-    tte.kings = b.kings;
-    tte.castling_rights = b.castling_rights;
-
-    tte.occupied_color[WHITE] = b.occupied_color[WHITE];
-    tte.occupied_color[BLACK] = b.occupied_color[BLACK];
-
-    tte.turn = b.turn;
-    tte.ep_square = b.ep_square;
 
     transposition_table[b_hash] = tte;
  
