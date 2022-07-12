@@ -88,9 +88,9 @@ void Board::push(const Move& move){
             ep_square = move.from_square + 8;
         } else if (diff == -16 && squareRank(move.from_square) == 6){
             ep_square = move.from_square - 8;
-        } else if (move.to_square == ep_square && (abs(diff) == 7 || abs(diff) == 9) && capture_piece_type == NO_PIECE){
+        } else if (move.to_square == prev_ep_square && (abs(diff) == 7 || abs(diff) == 9) && capture_piece_type == NO_PIECE){
             int down = (turn == WHITE) ? -8 : 8;
-            capture_square = ep_square + down;
+            capture_square = prev_ep_square + down;
             capture_piece_type = removePieceAt(capture_square);
         }
     }
