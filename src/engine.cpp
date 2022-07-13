@@ -1,5 +1,6 @@
 #include "engine.h"
 #include "board.h"
+#include "positiontables.h"
 
 #include <cstdint>
 #include <random>
@@ -10,73 +11,7 @@
 #define INT_MAX 2147483647
 #endif
 
-const int8_t PAWN_TABLE[64] = {
-    0,  0,  0,  0,  0,  0,  0,  0,
-    50, 50, 50, 50, 50, 50, 50, 50,
-    10, 10, 20, 30, 30, 20, 10, 10,
-    5,  5, 10, 25, 25, 10,  5,  5,
-    0,  0,  0, 20, 20,  0,  0,  0,
-    5, -5,-10,  0,  0,-10, -5,  5,
-    5, 10, 10,-20,-20, 10, 10,  5,
-    0,  0,  0,  0,  0,  0,  0,  0
-};
-
-const int8_t KNIGHT_TABLE[64] = {
-    -50,-40,-30,-30,-30,-30,-40,-50,
-    -40,-20,  0,  0,  0,  0,-20,-40,
-    -30,  0, 10, 15, 15, 10,  0,-30,
-    -30,  5, 15, 20, 20, 15,  5,-30,
-    -30,  0, 15, 20, 20, 15,  0,-30,
-    -30,  5, 10, 15, 15, 10,  5,-30,
-    -40,-20,  0,  5,  5,  0,-20,-40,
-    -50,-40,-30,-30,-30,-30,-40,-50
-};
-
-const int8_t BISHOP_TABLE[64] = {
-    -20,-10,-10,-10,-10,-10,-10,-20,
-    -10,  0,  0,  0,  0,  0,  0,-10,
-    -10,  0,  5, 10, 10,  5,  0,-10,
-    -10,  5,  5, 10, 10,  5,  5,-10,
-    -10,  0, 10, 10, 10, 10,  0,-10,
-    -10, 10, 10, 10, 10, 10, 10,-10,
-    -10,  5,  0,  0,  0,  0,  5,-10,
-    -20,-10,-10,-10,-10,-10,-10,-20
-};
-
-const int8_t ROOK_TABLE[64] = {
-    0,  0,  0,  0,  0,  0,  0, 0,
-    5, 10, 10, 10, 10, 10, 10, 5,
-    -5, 0,  0,  0,  0,  0,  0,-5,
-    -5, 0,  0,  0,  0,  0,  0,-5,
-    -5, 0,  0,  0,  0,  0,  0,-5,
-    -5, 0,  0,  0,  0,  0,  0,-5,
-    -5, 0,  0,  0,  0,  0,  0,-5,
-    0,  0,  0,  5,  5,  0,  0, 0
-};
-
-const int8_t QUEEN_TABLE[64] = {
-    -20,-10,-10, -5, -5,-10,-10,-20,
-    -10,  0,  0,  0,  0,  0,  0,-10,
-    -10,  0,  5,  5,  5,  5,  0,-10,
-     -5,  0,  5,  5,  5,  5,  0, -5,
-      0,  0,  5,  5,  5,  5,  0, -5,
-    -10,  5,  5,  5,  5,  5,  0,-10,
-    -10,  0,  5,  0,  0,  0,  0,-10,
-    -20,-10,-10, -5, -5,-10,-10,-20
-};
-
-const int8_t KING_TABLE[64] = {
-    -30,-40,-40,-50,-50,-40,-40,-30,
-    -30,-40,-40,-50,-50,-40,-40,-30,
-    -30,-40,-40,-50,-50,-40,-40,-30,
-    -30,-40,-40,-50,-50,-40,-40,-30,
-    -20,-30,-30,-40,-40,-30,-30,-20,
-    -10,-20,-20,-20,-20,-20,-20,-10,
-     20, 20,  0,  0,  0,  0, 20, 20,
-     20, 30, 10,  0,  0, 10, 30, 20
-};
-
-inline int dotProduct(BitBoard bb, const int8_t weights[]){
+inline int dotProduct(BitBoard bb, const int16_t weights[]){
     int accu = 0;
     while(bb){
         accu += weights[lsb(bb)];
@@ -85,7 +20,7 @@ inline int dotProduct(BitBoard bb, const int8_t weights[]){
     return accu;
 }
 
-inline int dotProductReverse(BitBoard bb, const int8_t weights[]){
+inline int dotProductReverse(BitBoard bb, const int16_t weights[]){
     int accu = 0;
     while(bb){
         accu += weights[63-lsb(bb)];
@@ -279,48 +214,106 @@ uint64_t updateZobrist(uint64_t hash, const Board& board, const Move& move, cons
 
 // optimize for current color
 int evaluation(const Board& b){
-    int centipawn = 0;
+    int mg_value = 0;
+    int eg_value = 0;
+    int game_phase = 0;
 
     Color turn = b.turn;
 
     // material values
-    centipawn += popcount(b.pawns & b.occupied_color[turn]) * 100;
-    centipawn -= popcount(b.pawns & b.occupied_color[turn ^ 1]) * 100;
 
-    centipawn += popcount(b.knights & b.occupied_color[turn]) * 320;
-    centipawn -= popcount(b.knights & b.occupied_color[turn ^ 1]) * 320;
+    // pawns
+    mg_value += popcount(b.pawns & b.occupied_color[turn]) * 82;
+    mg_value -= popcount(b.pawns & b.occupied_color[turn ^ 1]) * 82;
 
-    centipawn += popcount(b.bishops & b.occupied_color[turn]) * 330;
-    centipawn -= popcount(b.bishops & b.occupied_color[turn ^ 1]) * 330;
+    eg_value += popcount(b.pawns & b.occupied_color[turn]) * 94;
+    eg_value -= popcount(b.pawns & b.occupied_color[turn ^ 1]) * 94;
 
-    centipawn += popcount(b.rooks & b.occupied_color[turn]) * 500;
-    centipawn -= popcount(b.rooks & b.occupied_color[turn ^ 1]) * 500;
+    // knights
+    mg_value += popcount(b.knights & b.occupied_color[turn]) * 337;
+    mg_value -= popcount(b.knights & b.occupied_color[turn ^ 1]) * 337;
 
-    centipawn += popcount(b.queens & b.occupied_color[turn]) * 900;
-    centipawn -= popcount(b.queens & b.occupied_color[turn ^ 1]) * 900;
+    eg_value += popcount(b.knights & b.occupied_color[turn]) * 281;
+    eg_value -= popcount(b.knights & b.occupied_color[turn ^ 1]) * 281;
+
+    game_phase += popcount(b.knights);
+
+    // bishops
+    mg_value += popcount(b.bishops & b.occupied_color[turn]) * 365;
+    mg_value -= popcount(b.bishops & b.occupied_color[turn ^ 1]) * 365;
+
+    eg_value += popcount(b.bishops & b.occupied_color[turn]) * 297;
+    eg_value -= popcount(b.bishops & b.occupied_color[turn ^ 1]) * 297;
+
+    game_phase += popcount(b.bishops);
+
+    // rooks 
+    mg_value += popcount(b.rooks & b.occupied_color[turn]) * 477;
+    mg_value -= popcount(b.rooks & b.occupied_color[turn ^ 1]) * 477;
+
+    eg_value += popcount(b.rooks & b.occupied_color[turn]) * 512;
+    eg_value -= popcount(b.rooks & b.occupied_color[turn ^ 1]) * 512;
+
+    game_phase += popcount(b.rooks) * 2;
+
+    // queens
+    mg_value += popcount(b.queens & b.occupied_color[turn]) * 1025;
+    mg_value -= popcount(b.queens & b.occupied_color[turn ^ 1]) * 1025;
+
+    eg_value += popcount(b.queens & b.occupied_color[turn]) * 936;
+    eg_value -= popcount(b.queens & b.occupied_color[turn ^ 1]) * 936;
+
+    game_phase += popcount(b.queens) * 4;
 
     // piece-position tables
 
-    centipawn += dotProductReverse(b.pawns & b.occupied_color[turn], PAWN_TABLE);
-    centipawn -= dotProduct(b.pawns & b.occupied_color[turn ^ 1], PAWN_TABLE);
+    // pawns
+    mg_value += dotProductReverse(b.pawns & b.occupied_color[turn], mg_pawn_table);
+    mg_value -= dotProduct(b.pawns & b.occupied_color[turn ^ 1], mg_pawn_table);
 
-    centipawn += dotProductReverse(b.knights & b.occupied_color[turn], KNIGHT_TABLE);
-    centipawn -= dotProduct(b.knights & b.occupied_color[turn ^ 1], KNIGHT_TABLE);
+    eg_value += dotProductReverse(b.pawns & b.occupied_color[turn], eg_pawn_table);
+    eg_value -= dotProduct(b.pawns & b.occupied_color[turn ^ 1], eg_pawn_table);
 
-    centipawn += dotProductReverse(b.bishops & b.occupied_color[turn], BISHOP_TABLE);
-    centipawn -= dotProduct(b.bishops & b.occupied_color[turn ^ 1], BISHOP_TABLE);
+    // knights
+    mg_value += dotProductReverse(b.knights & b.occupied_color[turn], mg_knight_table);
+    mg_value -= dotProduct(b.knights & b.occupied_color[turn ^ 1], mg_knight_table);
 
-    centipawn += dotProductReverse(b.rooks & b.occupied_color[turn], ROOK_TABLE);
-    centipawn -= dotProduct(b.rooks & b.occupied_color[turn ^ 1], ROOK_TABLE);
+    eg_value += dotProductReverse(b.knights & b.occupied_color[turn], eg_knight_table);
+    eg_value -= dotProduct(b.knights & b.occupied_color[turn ^ 1], eg_knight_table);
 
-    centipawn += dotProductReverse(b.queens & b.occupied_color[turn], QUEEN_TABLE);
-    centipawn -= dotProduct(b.queens & b.occupied_color[turn ^ 1], QUEEN_TABLE);
+    // bishops
+    mg_value += dotProductReverse(b.bishops & b.occupied_color[turn], mg_bishop_table);
+    mg_value -= dotProduct(b.bishops & b.occupied_color[turn ^ 1], mg_bishop_table);
 
-    centipawn += dotProductReverse(b.kings & b.occupied_color[turn], KING_TABLE);
-    centipawn -= dotProduct(b.kings & b.occupied_color[turn ^ 1], KING_TABLE);
+    eg_value += dotProductReverse(b.bishops & b.occupied_color[turn], eg_bishop_table);
+    eg_value -= dotProduct(b.bishops & b.occupied_color[turn ^ 1], eg_bishop_table);
+    
+    // rooks
+    mg_value += dotProductReverse(b.rooks & b.occupied_color[turn], mg_rook_table);
+    mg_value -= dotProduct(b.rooks & b.occupied_color[turn ^ 1], mg_rook_table);
 
+    eg_value += dotProductReverse(b.rooks & b.occupied_color[turn], eg_rook_table);
+    eg_value -= dotProduct(b.rooks & b.occupied_color[turn ^ 1], eg_rook_table);
 
-    return centipawn;
+    // queens
+    mg_value += dotProductReverse(b.queens & b.occupied_color[turn], mg_queen_table);
+    mg_value -= dotProduct(b.queens & b.occupied_color[turn ^ 1], mg_queen_table);
+
+    eg_value += dotProductReverse(b.queens & b.occupied_color[turn], eg_queen_table);
+    eg_value -= dotProduct(b.queens & b.occupied_color[turn ^ 1], eg_queen_table);
+
+    // kings
+    mg_value += dotProductReverse(b.kings & b.occupied_color[turn], mg_king_table);
+    mg_value -= dotProduct(b.kings & b.occupied_color[turn ^ 1], mg_king_table);
+
+    eg_value += dotProductReverse(b.kings & b.occupied_color[turn], eg_king_table);
+    eg_value -= dotProduct(b.kings & b.occupied_color[turn ^ 1], eg_king_table);
+
+    int mg_phase = game_phase;
+    if (mg_phase > 24) mg_phase = 24;
+
+    int eg_phase = 24 - mg_phase;
+    return (mg_value * mg_phase + eg_value * eg_phase) / 24;
 }
 
 const uint8_t LOWER_BOUND = 0;

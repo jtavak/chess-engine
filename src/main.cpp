@@ -1,8 +1,6 @@
 #include <iostream>
 #include <cstdint>
 
-#include <chrono>
-
 #include "engine.h"
 #include "board.h"
 
