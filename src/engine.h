@@ -11,4 +11,3 @@ struct ZobristTable{
 
 std::pair<int, Move> searchRoot(Board& b, int depth, const ZobristTable& table);
 void initZobrist(ZobristTable& table);
-uint64_t hashZobrist(const Board& b, const ZobristTable& table);

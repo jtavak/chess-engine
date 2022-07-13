@@ -96,21 +96,16 @@ void Board::push(const Move& move){
     }
 
     // handle pawn promotions
-    bool promoted = false;
     if(move.promotion != NO_PIECE){
-        promoted = true;
         piece_type = move.promotion;
     }
 
     // handle castling
-    bool castling = piece_type == KING && squareDistance(move.from_square, move.to_square) > 1;
-    if(castling){
-        bool a_side = squareFile(move.to_square) < squareFile(move.from_square);
-
+    if(piece_type == KING && squareDistance(move.from_square, move.to_square) > 1){
         removePieceAt(move.from_square);
         removePieceAt(move.to_square);
 
-        if(a_side){
+        if(squareFile(move.to_square) < squareFile(move.from_square)){
             setPieceAt((turn == WHITE) ? C1 : C8, KING, turn);
             setPieceAt((turn == WHITE) ? D1 : D8, ROOK, turn);
             removePieceAt((turn == WHITE) ? A1 : A8);
